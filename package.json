@@ -1,0 +1,20 @@
+{
+  "name": "webrtc-crash-course",
+  "version": "1.0.0",
+  "description": "// server.js const express = require('express'); const app = express(); const server = require('http').Server(app); const io = require('socket.io')(server);",
+  "main": "public/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "express": "^5.1.0",
+    "express-session": "^1.18.1",
+    "https": "^1.0.0",
+    "socket.io": "^4.8.1"
+  }
+}

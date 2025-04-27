@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>WebRTC</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
+    <audio id="message-sent" src="/sounds/message-sent.wav" preload="auto"></audio>
+    <audio id="message-receive" src="/sounds/message-receive.wav" preload="auto"></audio>
+</head>
+<body>
+
+    <button id="start-camera">Start Camera</button>
+    <button id="share-screen">Share Screen</button>
+    <button id="stop-camera">Stop Share</button>
+
+    <div id="videos">
+        <video class="video-player" id="user-1" autoplay playsinline muted></video>
+        <video class="video-player" id="user-2" autoplay playsinline></video>
+    </div>
+
+    <div id="chat-container" style="margin: 20px;">
+        <div id="messages" style="height: 300px; border: 1px solid #ccc; overflow-y: scroll; margin-bottom: 10px; padding: 10px;"></div>
+        <div style="display: flex;">
+            <input type="text" id="message-input" style="flex: 1; margin-right: 10px; padding: 5px;" placeholder="Type your message...">
+            <button id="send-message">Send</button>
+        </div>
+    </div>
+    
+</body>
+<script src="/socket.io/socket.io.js"></script>
+<script src='main.js'></script>
+<button onclick="logout()" style="position: absolute; top: 10px; right: 10px;">Logout</button>
+<script>
+    function logout() {
+        fetch('/logout', { method: 'POST' })
+            .then(() => window.location.href = '/login.html')
+            .catch(err => console.error('Logout error:', err));
+    }
+</script>
+</html>
