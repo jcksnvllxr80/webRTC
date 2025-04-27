@@ -2,10 +2,11 @@
   "name": "webrtc",
   "version": "1.0.0",
   "description": "A little WebRTC sample project with hosted https server\n",
-  "main": "public/main.js",
+  "main": "electron.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "server": "node server.js",
+    "electron": "electron .",
+    "build": "electron-builder"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +16,33 @@
     "express": "^5.1.0",
     "express-session": "^1.18.1",
     "https": "^1.0.0",
+    "node-fetch": "^3.3.2",
     "socket.io": "^4.8.1"
+  },
+  "build": {
+    "appId": "com.yourapp.webrtc",
+    "productName": "WebRTC Desktop",
+    "files": [
+      "electron.js",
+      "public/**/*",
+      "server.js",
+      "private.key",
+      "certificate.pem"
+    ],
+    "mac": {
+      "category": "public.app-category.video"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "electron": "^35.2.1",
+    "electron-builder": "^26.0.12",
+    "wait-on": "^8.0.3"
   }
 }

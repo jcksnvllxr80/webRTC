@@ -11,6 +11,19 @@ A little WebRTC sample project with hosted https server
 
 * use `https://<server_ip>:3000` from browsers on other computers
 
-inspired by:
+## electron desktop app
+
+**Running the App**
+``` bash
+npm run electron
+```
+
+**Building the App**
+``` bash
+npm run build
+```
+This will create a packaged application in the `dist` folder. On macOS, it will create a file, on Windows, an `.exe`, and on Linux, an `.AppImage`. You can then create a shortcut to this executable. `.app`
+
+## inspired by:
 
 * https://medium.com/agora-io/how-does-webrtc-work-996748603141
