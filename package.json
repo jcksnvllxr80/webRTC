@@ -1,7 +1,7 @@
 {
-  "name": "webrtc-crash-course",
+  "name": "webrtc",
   "version": "1.0.0",
-  "description": "// server.js const express = require('express'); const app = express(); const server = require('http').Server(app); const io = require('socket.io')(server);",
+  "description": "A little WebRTC sample project with hosted https server\n",
   "main": "public/main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
