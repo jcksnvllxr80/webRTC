@@ -9,4 +9,8 @@ A little WebRTC sample project with hosted https server
 
 * start the server with `node server.js`. Note the server's ip  
 
-* use `https://<server_ip>:3000` from browsers on other computers  
+* use `https://<server_ip>:3000` from browsers on other computers
+
+inspired by:
+
+* https://medium.com/agora-io/how-does-webrtc-work-996748603141
