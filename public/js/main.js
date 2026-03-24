@@ -7,6 +7,7 @@ import { setupRoomUI, isInRoom } from './room.js';
 
 // Always set up room UI (lobby or call view)
 setupRoomUI();
+setupUIListeners();
 
 // Only initialize call features when inside a room
 if (isInRoom()) {
@@ -16,7 +17,6 @@ if (isInRoom()) {
 
     setupSignalingListeners();
     setupChatListeners();
-    setupUIListeners();
 }
 
 // Friends are always available

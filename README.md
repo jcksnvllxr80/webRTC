@@ -1,24 +1,28 @@
 # WebRTC
 
-A small WebRTC demo app served over HTTPS with login, registration, chat, friends, camera, and screen sharing.
+A small WebRTC demo app served over HTTPS with login, registration, chat, friends, camera, screen sharing, and an Electron desktop client.
 
 ## Getting Started
 
 ### 1. Prerequisites
 
-Install:
-
-* Node.js (a current LTS version is fine)
+Install Node.js. A current LTS version is fine.
 
 ### 2. Run the installer
 
-From the project root, run:
+From the project root, run one installer:
 
 ```bash
 sh ./install.sh
 ```
 
-Use `.\install.bat` instead in PowerShell on Windows if you do not want to use a shell script.
+On Windows PowerShell, use:
+
+```powershell
+.\install.bat
+```
+
+The installer runs `npm install` and checks that the HTTPS certificate files are present.
 
 ### 3. Make sure the HTTPS certificate files exist
 
@@ -27,7 +31,7 @@ This app expects these files in the project root:
 * `private.key`
 * `certificate.pem`
 
-They are already in this repo, so you can start the app without doing anything else.
+They are already in this repo, so the default setup works without any extra certificate step.
 
 If you want to regenerate them yourself, use OpenSSL:
 
@@ -43,7 +47,7 @@ Run:
 npm start
 ```
 
-By default, the app runs on port `8001`.
+The default port is `8001`.
 
 ### 5. Open the app
 
@@ -56,7 +60,7 @@ Because the certificate is self-signed, your browser will show a security warnin
 
 ### 6. Create accounts and log in
 
-To test the app successfully, use two separate browser sessions:
+For a real test, use two separate browser sessions:
 
 * two different devices, or
 * one normal browser window and one private/incognito window
@@ -83,12 +87,49 @@ You can also:
 * add the other user as a friend
 * click `Invite` next to a friend's name to create a room and copy the link to your clipboard
 
+## Electron Desktop Client
+
+The Electron app is a desktop client for the HTTPS server. It does not replace the server, so the server must already be running.
+
+### Run the desktop client
+
+1. Start the server:
+
+```bash
+npm start
+```
+
+2. In a second terminal, start Electron:
+
+```bash
+npm run electron
+```
+
+3. In the Electron connection window, use:
+
+* Server IP: `localhost` if the server is on the same computer
+* Port: `8001` unless you changed it in `config.json` or with `PORT`
+
+After connecting, the desktop client opens the same login and room flow as the browser version.
+
+### Build the desktop app
+
+Run:
+
+```bash
+npm run build
+```
+
+This creates packaged output in the `dist` folder. The packaged Electron app still expects a reachable WebRTC HTTPS server.
+
 ## Notes
 
 * `users.db` is created automatically in the project root the first time the app runs.
 * The server listens on `0.0.0.0`, so other devices on the same network can reach it.
-* The default port comes from `config.json`. You can change it there, or set `PORT` before starting the server.
-* This project uses public STUN servers and does not include a TURN server, so same-network testing is the simplest setup.
+* The default port comes from `config.json`. You can also override it with the `PORT` environment variable before starting the server.
+* The browser version will show a self-signed certificate warning the first time you connect.
+* This project uses public STUN servers and does not include a TURN server, so same-network testing is the simplest and most reliable setup.
+* Electron build output is written to the `dist` folder.
 
 ## Dependencies
 
@@ -97,31 +138,26 @@ The installer scripts install the Node.js package dependencies for you, so you n
 System dependencies:
 
 * Node.js
-* npm
+* npm, which ships with Node.js
 * OpenSSL only if you need to generate new HTTPS certificate files
 
-Project package dependencies:
+Runtime package dependencies:
 
 * `bcrypt`
 * `better-sqlite3`
 * `express`
 * `express-session`
 * `https`
+* `node-fetch`
 * `socket.io`
 
-## electron desktop app
+Desktop build dependencies:
 
-**Running the App**
-``` bash
-npm run electron
-```
+* `concurrently`
+* `electron`
+* `electron-builder`
+* `wait-on`
 
-**Building the App**
-``` bash
-npm run build
-```
-This will create a packaged application in the `dist` folder. On macOS, it will create a file, on Windows, an `.exe`, and on Linux, an `.AppImage`. You can then create a shortcut to this executable. `.app`
-
-## Inspired by:
+## Inspired By
 
 * https://medium.com/agora-io/how-does-webrtc-work-996748603141
