@@ -1,14 +1,29 @@
+*{ box-sizing: border-box; }
+
+body{
+    margin: 0;
+    background: #1a1a1a;
+    color: #e0e0e0;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
 .login-container {
-    max-width: 300px;
-    margin: 100px auto;
-    padding: 20px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+    max-width: 340px;
+    margin: 80px auto;
+    padding: 28px 24px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background: #222;
+}
+
+.login-container h2{
+    margin: 0 0 20px;
+    color: greenyellow;
+    font-size: 22px;
 }
 
 .form-group {
-    margin-bottom: 15px;
-    box-sizing: border-box;
+    margin-bottom: 16px;
 }
 
 .status-message {
@@ -24,53 +39,77 @@
 }
 
 .status-message.is-error {
-    background-color: #fde8e8;
-    border: 1px solid #f5b5b5;
-    color: #8a1c1c;
+    background-color: #3a1c1c;
+    border: 1px solid #6b2a2a;
+    color: #f5b5b5;
 }
 
 .status-message.is-success {
-    background-color: #e8f7ec;
-    border: 1px solid #b6e0c2;
-    color: #1f6b35;
+    background-color: #1c3a22;
+    border: 1px solid #2a6b35;
+    color: #b6e0c2;
 }
 
 input {
-    box-sizing: border-box;
     width: 100%;
-    padding: 8px;
+    padding: 10px 12px;
     margin-top: 5px;
-    border: 1px solid #ccc;
+    border: 1px solid #444;
     border-radius: 4px;
+    background: #2a2a2a;
+    color: #e0e0e0;
+    font-size: 14px;
+}
+
+input::placeholder{ color: #666; }
+
+input:focus{
+    outline: 2px solid greenyellow;
+    outline-offset: 1px;
+    border-color: greenyellow;
+}
+
+label {
+    display: block;
+    margin-bottom: 4px;
+    color: #aaa;
+    font-size: 14px;
 }
 
 button {
     width: 100%;
     padding: 10px;
-    background-color: #007bff;
-    color: white;
+    background: greenyellow;
+    color: #111;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     cursor: pointer;
-    box-sizing: border-box;
+    font-size: 15px;
+    font-weight: 600;
 }
 
 button:hover {
-    background-color: #0056b3;
+    background: #a8f03c;
 }
 
 button:disabled {
-    background-color: #7aa7da;
+    background: #555;
+    color: #999;
     cursor: wait;
-}
-
-label {
-    display: block;
-    margin-bottom: 5px;
 }
 
 .form-link {
     text-align: center;
-    margin-top: 15px;
+    margin-top: 16px;
     font-size: 14px;
+    color: #888;
+}
+
+.form-link a{
+    color: greenyellow;
+    text-decoration: none;
+}
+
+.form-link a:hover{
+    text-decoration: underline;
 }

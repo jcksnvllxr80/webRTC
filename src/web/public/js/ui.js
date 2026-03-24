@@ -1,6 +1,25 @@
 import { state } from './state.js';
+import { isInRoom } from './room.js';
 
 export function setupUIListeners() {
+    // Fetch and display current username
+    fetch('/api/me')
+        .then(r => r.json())
+        .then(data => {
+            const el = document.getElementById('current-user');
+            if (el && data.username) el.textContent = data.username;
+        })
+        .catch(() => {});
+
+    // Logout
+    document.getElementById('logout-btn').addEventListener('click', () => {
+        fetch('/logout', { method: 'POST' })
+            .then(() => window.location.href = '/login.html')
+            .catch(err => console.error('Logout error:', err));
+    });
+
+    if (!isInRoom()) return;
+
     // Enlarge toggle
     document.getElementById('enlarge-btn').addEventListener('click', () => {
         document.body.classList.toggle('enlarged');
@@ -28,12 +47,5 @@ export function setupUIListeners() {
         if (!document.fullscreenElement) {
             pip.srcObject = null;
         }
-    });
-
-    // Logout
-    document.getElementById('logout-btn').addEventListener('click', () => {
-        fetch('/logout', { method: 'POST' })
-            .then(() => window.location.href = '/login.html')
-            .catch(err => console.error('Logout error:', err));
     });
 }

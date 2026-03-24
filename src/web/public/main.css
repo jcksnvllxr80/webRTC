@@ -1,28 +1,97 @@
+/* ── Base ── */
+*{ box-sizing: border-box; }
+
 body{
-    width:800px;
-    margin:0 auto;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #1a1a1a;
+    color: #e0e0e0;
 }
 
-/* Lobby */
+/* ── Header ── */
+#app-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid #333;
+}
+
+.app-title{
+    font-size: 18px;
+    font-weight: 700;
+    color: greenyellow;
+}
+
+.header-right{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#current-user{
+    font-size: 14px;
+    color: #aaa;
+}
+
+#logout-btn{
+    padding: 6px 14px;
+    font-size: 13px;
+    background: transparent;
+    color: #ccc;
+    border: 1px solid #555;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#logout-btn:hover{
+    background: #333;
+    color: #fff;
+}
+
+/* ── Lobby ── */
 #lobby{
-    padding: 20px 10px;
+    padding: 40px 16px;
 }
 
-#lobby h1{
-    margin: 0 0 20px;
+.lobby-hero{
+    margin-bottom: 24px;
+}
+
+.lobby-hero h1{
+    margin: 0 0 6px;
+    font-size: 28px;
+    color: #fff;
+}
+
+.lobby-subtitle{
+    margin: 0;
+    color: #888;
+    font-size: 15px;
 }
 
 .lobby-actions{
     display: flex;
-    gap: 10px;
+    gap: 12px;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 32px;
 }
 
 #create-room-btn{
-    padding: 10px 20px;
-    font-size: 16px;
+    padding: 10px 24px;
+    font-size: 15px;
+    font-weight: 600;
     cursor: pointer;
+    background: greenyellow;
+    color: #111;
+    border: none;
+    border-radius: 6px;
+}
+
+#create-room-btn:hover{
+    background: #a8f03c;
 }
 
 .join-room-form{
@@ -31,74 +100,204 @@ body{
 }
 
 .join-room-form input{
-    padding: 8px;
-    width: 200px;
-    border: 1px solid #ccc;
+    padding: 8px 12px;
+    width: 220px;
+    border: 1px solid #444;
     border-radius: 4px;
+    background: #2a2a2a;
+    color: #e0e0e0;
+    font-size: 14px;
 }
+
+.join-room-form input::placeholder{ color: #666; }
 
 .join-room-form button{
     padding: 8px 16px;
     cursor: pointer;
+    background: #333;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    border-radius: 4px;
+    font-size: 14px;
 }
 
-/* Room bar */
+.join-room-form button:hover{
+    background: #444;
+}
+
+/* ── Friends panel (shared between lobby and call) ── */
+.friends-panel{
+    padding: 0;
+}
+
+.friends-panel h3{
+    margin: 0 0 8px;
+    font-size: 15px;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+#friends-list, #call-friends-list{
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#friends-list li, #call-friends-list li{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid #2a2a2a;
+    font-size: 14px;
+}
+
+#friends-list .no-friends, #call-friends-list .no-friends{
+    color: #666;
+    font-style: italic;
+}
+
+.friend-actions{
+    display: flex;
+    gap: 4px;
+}
+
+.invite-friend-btn{
+    padding: 3px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 3px;
+}
+
+.invite-friend-btn:hover{ background: #218838; }
+
+.remove-friend-btn{
+    padding: 3px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    background: #555;
+    color: #ccc;
+    border: none;
+    border-radius: 3px;
+}
+
+.remove-friend-btn:hover{ background: #dc3545; color: #fff; }
+
+/* ── Room bar ── */
 #room-bar{
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 10px;
-    background: #f5f5f5;
-    border-bottom: 1px solid #ddd;
+    padding: 8px 16px;
+    background: #222;
+    border-bottom: 1px solid #333;
+    font-size: 14px;
 }
 
 #room-link{
-    width: 280px;
+    width: 260px;
     padding: 4px 8px;
-    border: 1px solid #ccc;
+    border: 1px solid #444;
     border-radius: 4px;
     font-size: 13px;
-    color: #555;
+    color: #888;
+    background: #2a2a2a;
 }
 
 #copy-room-link, #leave-room-btn{
     padding: 4px 12px;
     font-size: 13px;
     cursor: pointer;
+    background: #333;
+    color: #ccc;
+    border: 1px solid #555;
+    border-radius: 4px;
 }
 
-/* Controls bar */
-.controls-bar{
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
+#copy-room-link:hover, #leave-room-btn:hover{
+    background: #444;
+    color: #fff;
+}
+
+/* ── Video section ── */
+#video-section{
+    padding: 12px 16px 0;
 }
 
 #videos{
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    column-gap: 1em;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 12px;
     width: 100%;
-    padding: 10px;
 }
 
 video{
-    width:100%;
-    border:2px solid greenyellow;
-    background-color: rgb(63,62,62);
+    width: 100%;
+    border: 2px solid greenyellow;
+    border-radius: 6px;
+    background-color: #2a2a2a;
 }
 
 #user-2{
     object-fit: contain;
 }
 
-textarea{
-    height: 50px;
-    width: 100%;
+/* ── Controls bar (below video) ── */
+.controls-bar{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+    flex-wrap: wrap;
 }
 
-/* Remote video wrapper */
+.controls-bar button, .controls-bar select{
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    background: #333;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    border-radius: 4px;
+}
+
+.controls-bar button:hover{
+    background: #444;
+}
+
+.controls-bar select{
+    appearance: auto;
+}
+
+.controls-spacer{
+    flex: 1;
+}
+
+#remote-username{
+    font-weight: 600;
+    color: greenyellow;
+    font-size: 14px;
+}
+
+#add-friend-btn{
+    padding: 4px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+}
+
+#add-friend-btn:hover{ background: #218838; }
+#add-friend-btn:disabled{ background: #555; color: #999; cursor: default; }
+
+/* ── Remote video wrapper ── */
 #remote-wrapper{
     position: relative;
 }
@@ -113,7 +312,8 @@ textarea{
     transition: opacity 0.2s;
 }
 
-#remote-wrapper:hover #remote-controls{
+#remote-wrapper:hover #remote-controls,
+#remote-controls:focus-within{
     opacity: 1;
 }
 
@@ -123,18 +323,20 @@ textarea{
     padding: 0;
     border: none;
     border-radius: 6px;
-    background: rgba(0,0,0,0.55);
+    background: rgba(0,0,0,0.6);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-#remote-controls button:hover{
-    background: rgba(0,0,0,0.8);
+#remote-controls button:hover{ background: rgba(0,0,0,0.85); }
+#remote-controls button:focus-visible{
+    outline: 2px solid greenyellow;
+    outline-offset: 2px;
 }
 
-/* PIP preview — hidden by default, shown in fullscreen */
+/* ── PIP preview ── */
 #pip-preview{
     display: none;
     position: absolute;
@@ -144,13 +346,12 @@ textarea{
     border: 2px solid greenyellow;
     border-radius: 6px;
     z-index: 10;
-    background: rgb(63,62,62);
+    background: #2a2a2a;
 }
 
-/* Enlarged mode */
+/* ── Enlarged mode ── */
 body.enlarged{
-    width: 96vw;
-    max-width: none;
+    max-width: 96vw;
 }
 
 body.enlarged #videos{
@@ -166,7 +367,7 @@ body.enlarged #user-2{
     width: 100%;
 }
 
-/* Fullscreen mode for remote wrapper */
+/* ── Fullscreen ── */
 #remote-wrapper:fullscreen{
     background: black;
     display: flex;
@@ -190,123 +391,145 @@ body.enlarged #user-2{
     display: block;
 }
 
-/* Webkit prefix for Safari */
 #remote-wrapper:-webkit-full-screen #pip-preview{
     display: block;
 }
 
-/* Remote user bar */
-#remote-user-bar{
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
+/* ── Bottom panel: friends + chat side by side ── */
+#bottom-panel{
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 16px;
+    padding: 16px;
+    border-top: 1px solid #333;
+    margin-top: 4px;
 }
 
-#remote-username{
-    font-weight: bold;
+#call-friends{
+    overflow-y: auto;
+    max-height: 300px;
 }
 
-#add-friend-btn{
-    padding: 4px 12px;
-    font-size: 13px;
-    cursor: pointer;
-}
-
-/* Friends panel */
-#friends-panel{
-    padding: 0 10px;
-    margin-bottom: 10px;
-}
-
-#friends-panel h3{
-    margin: 10px 0 5px;
-}
-
-#friends-list{
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-#friends-list li{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 4px 0;
-    border-bottom: 1px solid #eee;
-}
-
-#friends-list .no-friends{
-    color: #888;
-    font-style: italic;
-}
-
-.friend-actions{
-    display: flex;
-    gap: 4px;
-}
-
-.invite-friend-btn{
-    padding: 2px 8px;
-    font-size: 12px;
-    cursor: pointer;
-    background: #28a745;
-    color: white;
-    border: none;
-    border-radius: 3px;
-}
-
-.invite-friend-btn:hover{
-    background: #218838;
-}
-
-.remove-friend-btn{
-    padding: 2px 8px;
-    font-size: 12px;
-    cursor: pointer;
-    background: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 3px;
-}
-
-.remove-friend-btn:hover{
-    background: #c82333;
-}
-
-/* Chat */
+/* ── Chat ── */
 #chat-container{
-    margin: 20px;
+    display: flex;
+    flex-direction: column;
 }
 
 #messages{
-    height: 300px;
-    border: 1px solid #ccc;
-    overflow-y: scroll;
-    margin-bottom: 10px;
+    flex: 1;
+    height: 250px;
+    border: 1px solid #333;
+    border-radius: 6px;
+    overflow-y: auto;
     padding: 10px;
+    background: #222;
+    font-size: 14px;
+}
+
+#messages p{
+    margin: 4px 0;
+}
+
+#messages strong{
+    color: greenyellow;
 }
 
 .chat-input-row{
     display: flex;
+    gap: 8px;
+    margin-top: 8px;
 }
 
 .chat-input-row input{
     flex: 1;
-    margin-right: 10px;
-    padding: 5px;
+    padding: 8px 12px;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background: #2a2a2a;
+    color: #e0e0e0;
+    font-size: 14px;
 }
 
-/* Logout */
-.logout-btn{
-    position: absolute;
-    top: 10px;
-    right: 10px;
+.chat-input-row input::placeholder{ color: #666; }
+
+.chat-input-row button{
+    padding: 8px 16px;
+    cursor: pointer;
+    background: greenyellow;
+    color: #111;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 14px;
 }
 
-@media screen and (max-width:800px) {
-    body{
-        width:100%;
+.chat-input-row button:hover{ background: #a8f03c; }
+
+/* ── Focus styles ── */
+:focus-visible{
+    outline: 2px solid greenyellow;
+    outline-offset: 2px;
+}
+
+/* ── Touch devices: always show video controls ── */
+@media (hover: none){
+    #remote-controls{
+        opacity: 1;
+    }
+}
+
+/* ── Responsive: tablet ── */
+@media screen and (max-width: 900px){
+    body{ max-width: 100%; }
+
+    #videos{
+        grid-template-columns: 1fr 1.5fr;
+    }
+
+    #bottom-panel{
+        grid-template-columns: 1fr;
+    }
+
+    #call-friends{
+        max-height: 150px;
+    }
+}
+
+/* ── Responsive: mobile ── */
+@media screen and (max-width: 600px){
+    #videos{
+        grid-template-columns: 1fr;
+    }
+
+    #user-1{
+        width: 100%;
+    }
+
+    .lobby-actions{
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .join-room-form{
+        flex-direction: column;
+    }
+
+    .join-room-form input{
+        width: 100%;
+    }
+
+    #room-bar{
+        flex-wrap: wrap;
+        font-size: 13px;
+    }
+
+    #room-link{
+        width: 100%;
+        order: 10;
+    }
+
+    .controls-bar{
+        flex-wrap: wrap;
     }
 }

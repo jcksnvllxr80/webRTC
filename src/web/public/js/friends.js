@@ -11,7 +11,6 @@ export function setupFriendsListeners() {
     const addFriendBtn = document.getElementById('add-friend-btn');
 
     if (isInRoom()) {
-        // When a remote user connects, store their username and show the add friend button
         socket.on('user-connected', (userId, username) => {
             if (username) {
                 remoteUsername = username;
@@ -19,28 +18,28 @@ export function setupFriendsListeners() {
             }
         });
 
-        addFriendBtn.addEventListener('click', async () => {
-            if (!remoteUsername) return;
-
-            try {
-                const res = await fetch('/api/friends', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ friendUsername: remoteUsername })
-                });
-
-                if (res.ok) {
-                    addFriendBtn.textContent = 'Added!';
-                    addFriendBtn.disabled = true;
-                    loadFriendsList();
-                } else {
-                    const data = await res.json();
-                    alert(data.error || 'Could not add friend');
+        if (addFriendBtn) {
+            addFriendBtn.addEventListener('click', async () => {
+                if (!remoteUsername) return;
+                try {
+                    const res = await fetch('/api/friends', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ friendUsername: remoteUsername })
+                    });
+                    if (res.ok) {
+                        addFriendBtn.textContent = 'Added!';
+                        addFriendBtn.disabled = true;
+                        loadFriendsList();
+                    } else {
+                        const data = await res.json();
+                        alert(data.error || 'Could not add friend');
+                    }
+                } catch (err) {
+                    console.error('Add friend error:', err);
                 }
-            } catch (err) {
-                console.error('Add friend error:', err);
-            }
-        });
+            });
+        }
     }
 
     loadFriendsList();
@@ -49,6 +48,7 @@ export function setupFriendsListeners() {
 async function updateAddFriendButton() {
     const btn = document.getElementById('add-friend-btn');
     const label = document.getElementById('remote-username');
+    if (!btn || !label) return;
 
     if (!remoteUsername) {
         btn.style.display = 'none';
@@ -61,7 +61,6 @@ async function updateAddFriendButton() {
     try {
         const res = await fetch(`/api/friends/check/${encodeURIComponent(remoteUsername)}`);
         const { isFriend } = await res.json();
-
         if (isFriend) {
             btn.textContent = 'Already Friends';
             btn.disabled = true;
@@ -75,62 +74,77 @@ async function updateAddFriendButton() {
     }
 }
 
+function getFriendsListElements() {
+    // Return whichever friends list elements exist in the current view
+    const lists = [];
+    const lobby = document.getElementById('friends-list');
+    const call = document.getElementById('call-friends-list');
+    if (lobby) lists.push(lobby);
+    if (call) lists.push(call);
+    return lists;
+}
+
 async function loadFriendsList() {
-    const list = document.getElementById('friends-list');
+    const lists = getFriendsListElements();
+    if (lists.length === 0) return;
+
     try {
         const res = await fetch('/api/friends');
         const friends = await res.json();
 
-        list.innerHTML = '';
-        if (friends.length === 0) {
-            list.innerHTML = '<li class="no-friends">No friends yet</li>';
-            return;
-        }
-        friends.forEach(f => {
-            const li = document.createElement('li');
+        lists.forEach(list => {
+            list.innerHTML = '';
+            if (friends.length === 0) {
+                const li = document.createElement('li');
+                li.className = 'no-friends';
+                li.textContent = 'No friends yet';
+                list.appendChild(li);
+                return;
+            }
+            friends.forEach(f => {
+                const li = document.createElement('li');
 
-            const nameSpan = document.createElement('span');
-            nameSpan.textContent = f.friend_username;
-            li.appendChild(nameSpan);
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = f.friend_username;
+                li.appendChild(nameSpan);
 
-            const btnGroup = document.createElement('span');
-            btnGroup.className = 'friend-actions';
+                const btnGroup = document.createElement('span');
+                btnGroup.className = 'friend-actions';
 
-            // Invite button (only on lobby when not in a room — creates a room and shows link)
-            if (!isInRoom()) {
-                const inviteBtn = document.createElement('button');
-                inviteBtn.className = 'invite-friend-btn';
-                inviteBtn.textContent = 'Invite';
-                inviteBtn.addEventListener('click', async () => {
-                    try {
-                        const res = await fetch('/api/rooms', { method: 'POST' });
-                        const { roomId } = await res.json();
-                        const link = `${window.location.origin}/room/${roomId}`;
-                        await navigator.clipboard.writeText(link);
-                        inviteBtn.textContent = 'Link Copied!';
-                        setTimeout(() => { inviteBtn.textContent = 'Invite'; }, 2000);
-                    } catch (err) {
-                        console.error('Invite error:', err);
+                if (!isInRoom()) {
+                    const inviteBtn = document.createElement('button');
+                    inviteBtn.className = 'invite-friend-btn';
+                    inviteBtn.textContent = 'Invite';
+                    inviteBtn.addEventListener('click', async () => {
+                        try {
+                            const res = await fetch('/api/rooms', { method: 'POST' });
+                            const { roomId } = await res.json();
+                            const link = `${window.location.origin}/room/${roomId}`;
+                            await navigator.clipboard.writeText(link);
+                            inviteBtn.textContent = 'Link Copied!';
+                            setTimeout(() => { inviteBtn.textContent = 'Invite'; }, 2000);
+                        } catch (err) {
+                            console.error('Invite error:', err);
+                        }
+                    });
+                    btnGroup.appendChild(inviteBtn);
+                }
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-friend-btn';
+                removeBtn.textContent = 'Remove';
+                removeBtn.addEventListener('click', async () => {
+                    await fetch(`/api/friends/${encodeURIComponent(f.friend_username)}`, { method: 'DELETE' });
+                    loadFriendsList();
+                    if (remoteUsername === f.friend_username) {
+                        updateAddFriendButton();
                     }
                 });
-                btnGroup.appendChild(inviteBtn);
-            }
+                btnGroup.appendChild(removeBtn);
 
-            const removeBtn = document.createElement('button');
-            removeBtn.className = 'remove-friend-btn';
-            removeBtn.textContent = 'Remove';
-            removeBtn.dataset.username = f.friend_username;
-            removeBtn.addEventListener('click', async () => {
-                await fetch(`/api/friends/${encodeURIComponent(f.friend_username)}`, { method: 'DELETE' });
-                loadFriendsList();
-                if (remoteUsername === f.friend_username) {
-                    updateAddFriendButton();
-                }
+                li.appendChild(btnGroup);
+                list.appendChild(li);
             });
-            btnGroup.appendChild(removeBtn);
-
-            li.appendChild(btnGroup);
-            list.appendChild(li);
         });
     } catch (err) {
         console.error('Load friends error:', err);
