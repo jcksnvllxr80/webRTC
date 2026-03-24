@@ -3,6 +3,78 @@ body{
     margin:0 auto;
 }
 
+/* Lobby */
+#lobby{
+    padding: 20px 10px;
+}
+
+#lobby h1{
+    margin: 0 0 20px;
+}
+
+.lobby-actions{
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+#create-room-btn{
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.join-room-form{
+    display: flex;
+    gap: 6px;
+}
+
+.join-room-form input{
+    padding: 8px;
+    width: 200px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.join-room-form button{
+    padding: 8px 16px;
+    cursor: pointer;
+}
+
+/* Room bar */
+#room-bar{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+}
+
+#room-link{
+    width: 280px;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #555;
+}
+
+#copy-room-link, #leave-room-btn{
+    padding: 4px 12px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+/* Controls bar */
+.controls-bar{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+}
+
 #videos{
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -15,6 +87,10 @@ video{
     width:100%;
     border:2px solid greenyellow;
     background-color: rgb(63,62,62);
+}
+
+#user-2{
+    object-fit: contain;
 }
 
 textarea{
@@ -117,6 +193,116 @@ body.enlarged #user-2{
 /* Webkit prefix for Safari */
 #remote-wrapper:-webkit-full-screen #pip-preview{
     display: block;
+}
+
+/* Remote user bar */
+#remote-user-bar{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+}
+
+#remote-username{
+    font-weight: bold;
+}
+
+#add-friend-btn{
+    padding: 4px 12px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+/* Friends panel */
+#friends-panel{
+    padding: 0 10px;
+    margin-bottom: 10px;
+}
+
+#friends-panel h3{
+    margin: 10px 0 5px;
+}
+
+#friends-list{
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#friends-list li{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid #eee;
+}
+
+#friends-list .no-friends{
+    color: #888;
+    font-style: italic;
+}
+
+.friend-actions{
+    display: flex;
+    gap: 4px;
+}
+
+.invite-friend-btn{
+    padding: 2px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 3px;
+}
+
+.invite-friend-btn:hover{
+    background: #218838;
+}
+
+.remove-friend-btn{
+    padding: 2px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 3px;
+}
+
+.remove-friend-btn:hover{
+    background: #c82333;
+}
+
+/* Chat */
+#chat-container{
+    margin: 20px;
+}
+
+#messages{
+    height: 300px;
+    border: 1px solid #ccc;
+    overflow-y: scroll;
+    margin-bottom: 10px;
+    padding: 10px;
+}
+
+.chat-input-row{
+    display: flex;
+}
+
+.chat-input-row input{
+    flex: 1;
+    margin-right: 10px;
+    padding: 5px;
+}
+
+/* Logout */
+.logout-btn{
+    position: absolute;
+    top: 10px;
+    right: 10px;
 }
 
 @media screen and (max-width:800px) {

@@ -1,5 +1,10 @@
 node_modules
 certificate.pem
 private.key
+users.db
 .idea
+.vscode
+.claude
+claudeignore
+codexignore
 dist

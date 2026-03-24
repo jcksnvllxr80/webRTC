@@ -11,10 +11,13 @@ const options = {
 
 const server = https.createServer(options, app);
 const io = require('socket.io')(server);
+const crypto = require('crypto');
 const session = require('express-session');
 const path = require('path');
+const db = require('./db');
 
-const PORT = process.env.PORT || 3000;
+const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
+const PORT = process.env.PORT || config.port || 3000;
 // Create the session middleware
 const sessionMiddleware = session({
     secret: 'your-secret-key',
@@ -48,7 +51,7 @@ app.get('/login.html', (req, res) => {
 
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    if (users[username] && users[username] === password) {
+    if (username && password && db.verifyUser(username, password)) {
         req.session.authenticated = true;
         req.session.username = username;
         res.sendStatus(200);
@@ -57,9 +60,39 @@ app.post('/login', async (req, res) => {
     }
 });
 
+app.get('/register.html', (req, res) => {
+    if (req.session && req.session.authenticated) {
+        return res.redirect('/');
+    }
+    res.sendFile(path.join(__dirname, 'public', 'register.html'));
+});
+
+app.post('/register', async (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Username and password required' });
+    }
+    if (username.length < 3 || password.length < 6) {
+        return res.status(400).json({ error: 'Username must be 3+ chars, password 6+ chars' });
+    }
+    if (db.userExists(username)) {
+        return res.status(409).json({ error: 'Username already taken' });
+    }
+    try {
+        db.createUser(username, password);
+        req.session.authenticated = true;
+        req.session.username = username;
+        res.sendStatus(201);
+    } catch (err) {
+        console.error('Registration error:', err);
+        res.sendStatus(500);
+    }
+});
+
 // Protect all other routes
 app.use('/', (req, res, next) => {
-    if (req.path === '/login.html' || req.path === '/login') {
+    if (req.path === '/login.html' || req.path === '/login' ||
+        req.path === '/register.html' || req.path === '/register') {
         return next();
     }
     requireAuth(req, res, next);
@@ -68,16 +101,61 @@ app.use('/', (req, res, next) => {
 // Serve static files after authentication check
 app.use(express.static('public'));
 
-// Users database (in memory)
-const users = {
-    "user1": "user123",
-    "user2": "user234"
-};
-
 // Handle logout
 app.post('/logout', (req, res) => {
     req.session.destroy();
     res.sendStatus(200);
+});
+
+// Friends API
+app.post('/api/friends', (req, res) => {
+    const { friendUsername } = req.body;
+    const username = req.session.username;
+    if (!friendUsername) {
+        return res.status(400).json({ error: 'Friend username required' });
+    }
+    if (friendUsername === username) {
+        return res.status(400).json({ error: 'Cannot add yourself' });
+    }
+    if (!db.userExists(friendUsername)) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+    if (db.isFriend(username, friendUsername)) {
+        return res.status(409).json({ error: 'Already a friend' });
+    }
+    db.addFriend(username, friendUsername);
+    res.sendStatus(201);
+});
+
+app.delete('/api/friends/:friendUsername', (req, res) => {
+    const username = req.session.username;
+    db.removeFriend(username, req.params.friendUsername);
+    res.sendStatus(200);
+});
+
+app.get('/api/friends', (req, res) => {
+    const friends = db.getFriends(req.session.username);
+    res.json(friends);
+});
+
+app.get('/api/friends/check/:friendUsername', (req, res) => {
+    const isFriend = db.isFriend(req.session.username, req.params.friendUsername);
+    res.json({ isFriend });
+});
+
+app.get('/api/me', (req, res) => {
+    res.json({ username: req.session.username });
+});
+
+// Rooms API
+app.post('/api/rooms', (req, res) => {
+    const roomId = crypto.randomBytes(4).toString('hex');
+    res.json({ roomId });
+});
+
+// Serve main app for room URLs
+app.get('/room/:roomId', requireAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Socket.IO configuration
@@ -99,7 +177,8 @@ io.on('connection', (socket) => {
 
     socket.on('join-room', (roomId, userId) => {
         socket.join(roomId);
-        socket.to(roomId).emit('user-connected', userId);
+        const username = socket.request.session.username;
+        socket.to(roomId).emit('user-connected', userId, username);
     });
 
     socket.on('offer', (offer, roomId) => {

@@ -5,49 +5,84 @@
     <meta http-equiv='X-UA-Compatible' content='IE=edge'>
     <title>WebRTC</title>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
+    <link rel='stylesheet' type='text/css' media='screen' href='/main.css'>
     <audio id="message-sent" src="/sounds/message-sent.wav" preload="auto"></audio>
     <audio id="message-receive" src="/sounds/message-receive.wav" preload="auto"></audio>
 </head>
 <body>
 
-    <button id="start-camera">Start Camera</button>
-    <button id="share-screen">Share Screen</button>
-    <button id="stop-camera">Stop Share</button>
+    <button id="logout-btn" class="logout-btn">Logout</button>
 
-    <div id="videos">
-        <video class="video-player" id="user-1" autoplay playsinline muted></video>
-        <div id="remote-wrapper">
-            <video class="video-player" id="user-2" autoplay playsinline></video>
-            <div id="remote-controls">
-                <button id="enlarge-btn" title="Enlarge">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="white"><path d="M3 5a2 2 0 0 1 2-2h4a1 1 0 0 0 0-2H5a4 4 0 0 0-4 4v4a1 1 0 0 0 2 0V5zm18-2h-4a1 1 0 1 0 0 2h4v4a1 1 0 1 0 2 0V5a4 4 0 0 0-4-4zM3 15a1 1 0 0 0-2 0v4a4 4 0 0 0 4 4h4a1 1 0 1 0 0-2H5a2 2 0 0 1-2-2v-4zm20 0a1 1 0 1 0-2 0v4a2 2 0 0 1-2 2h-4a1 1 0 1 0 0 2h4a4 4 0 0 0 4-4v-4z"/></svg>
-                </button>
-                <button id="fullscreen-btn" title="Fullscreen">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="white"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-                </button>
+    <!-- Lobby (no room selected) -->
+    <div id="lobby">
+        <h1>WebRTC</h1>
+        <div class="lobby-actions">
+            <button id="create-room-btn">Create Room</button>
+            <form id="join-room-form" class="join-room-form">
+                <input type="text" id="join-room-input" placeholder="Room ID or link">
+                <button type="submit">Join</button>
+            </form>
+        </div>
+
+        <div id="friends-panel">
+            <h3>Friends</h3>
+            <ul id="friends-list"></ul>
+        </div>
+    </div>
+
+    <!-- Call UI (inside a room) -->
+    <div id="call-ui" style="display:none">
+        <div id="room-bar">
+            <span>Room: <strong id="room-id-display"></strong></span>
+            <input type="text" id="room-link" readonly>
+            <button id="copy-room-link">Copy Link</button>
+            <button id="leave-room-btn">Leave</button>
+        </div>
+
+        <div class="controls-bar">
+            <button id="start-camera">Start Camera</button>
+            <button id="share-screen">Share Screen</button>
+            <button id="stop-camera">Stop Share</button>
+            <select id="resolution-select">
+                <option value="1920x1080" selected>1080p (1920x1080)</option>
+                <option value="1280x720">720p (1280x720)</option>
+                <option value="2560x1440">1440p (2560x1440)</option>
+                <option value="3840x2160">4K (3840x2160)</option>
+                <option value="native">Native</option>
+            </select>
+        </div>
+
+        <div id="videos">
+            <video class="video-player" id="user-1" autoplay playsinline muted></video>
+            <div id="remote-wrapper">
+                <video class="video-player" id="user-2" autoplay playsinline></video>
+                <div id="remote-controls">
+                    <button id="enlarge-btn" title="Enlarge">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="white"><path d="M3 5a2 2 0 0 1 2-2h4a1 1 0 0 0 0-2H5a4 4 0 0 0-4 4v4a1 1 0 0 0 2 0V5zm18-2h-4a1 1 0 1 0 0 2h4v4a1 1 0 1 0 2 0V5a4 4 0 0 0-4-4zM3 15a1 1 0 0 0-2 0v4a4 4 0 0 0 4 4h4a1 1 0 1 0 0-2H5a2 2 0 0 1-2-2v-4zm20 0a1 1 0 1 0-2 0v4a2 2 0 0 1-2 2h-4a1 1 0 1 0 0 2h4a4 4 0 0 0 4-4v-4z"/></svg>
+                    </button>
+                    <button id="fullscreen-btn" title="Fullscreen">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="white"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                    </button>
+                </div>
+                <video id="pip-preview" autoplay playsinline muted></video>
             </div>
-            <video id="pip-preview" autoplay playsinline muted></video>
+        </div>
+
+        <div id="remote-user-bar">
+            <span id="remote-username"></span>
+            <button id="add-friend-btn" style="display:none">Add Friend</button>
+        </div>
+
+        <div id="chat-container">
+            <div id="messages"></div>
+            <div class="chat-input-row">
+                <input type="text" id="message-input" placeholder="Type your message...">
+                <button id="send-message">Send</button>
+            </div>
         </div>
     </div>
 
-    <div id="chat-container" style="margin: 20px;">
-        <div id="messages" style="height: 300px; border: 1px solid #ccc; overflow-y: scroll; margin-bottom: 10px; padding: 10px;"></div>
-        <div style="display: flex;">
-            <input type="text" id="message-input" style="flex: 1; margin-right: 10px; padding: 5px;" placeholder="Type your message...">
-            <button id="send-message">Send</button>
-        </div>
-    </div>
-    
-</body>
 <script src="/socket.io/socket.io.js"></script>
-<script src='main.js'></script>
-<button onclick="logout()" style="position: absolute; top: 10px; right: 10px;">Logout</button>
-<script>
-    function logout() {
-        fetch('/logout', { method: 'POST' })
-            .then(() => window.location.href = '/login.html')
-            .catch(err => console.error('Logout error:', err));
-    }
-</script>
+<script type="module" src="/js/main.js"></script>
+</body>
 </html>

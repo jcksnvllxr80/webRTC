@@ -1,6 +1,6 @@
 {
   "name": "webrtc",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A little WebRTC sample project with hosted https server\n",
   "main": "electron.js",
   "scripts": {
@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^5.1.1",
+    "better-sqlite3": "^12.8.0",
     "express": "^5.1.0",
     "express-session": "^1.18.1",
     "https": "^1.0.0",
