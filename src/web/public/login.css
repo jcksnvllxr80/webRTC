@@ -1,113 +1,157 @@
+/* ── Design Tokens (matches main.css) ── */
+:root{
+    --c-base: #0e0e0e;
+    --c-surface: #1a1a1a;
+    --c-elevated: #242424;
+    --c-overlay: #2e2e2e;
+    --c-border: #333;
+    --c-border-subtle: #2a2a2a;
+    --c-text: #e0e0e0;
+    --c-text-secondary: #999;
+    --c-text-muted: #666;
+    --c-accent: #adff2f;
+    --c-accent-hover: #98e626;
+    --c-accent-muted: rgba(173, 255, 47, 0.15);
+    --c-accent-text: #111;
+    --c-success: #28a745;
+    --c-error: #dc3545;
+    --font-sans: 'Geist', system-ui, -apple-system, sans-serif;
+    --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
+    --text-sm: 13px;
+    --text-base: 15px;
+    --text-xl: 22px;
+    --r-sm: 4px;
+    --r-md: 8px;
+    --r-lg: 12px;
+    --sp-xs: 4px;
+    --sp-sm: 8px;
+    --sp-md: 16px;
+    --sp-lg: 24px;
+    --dur-micro: 80ms;
+}
+
 *{ box-sizing: border-box; }
 
 body{
     margin: 0;
-    background: #1a1a1a;
-    color: #e0e0e0;
-    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--c-surface);
+    color: var(--c-text);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
 }
 
-.login-container {
+.login-container{
     max-width: 340px;
     margin: 80px auto;
-    padding: 28px 24px;
-    border: 1px solid #333;
-    border-radius: 8px;
-    background: #222;
+    padding: var(--sp-lg) var(--sp-lg);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-lg);
+    background: var(--c-elevated);
 }
 
 .login-container h2{
-    margin: 0 0 20px;
-    color: greenyellow;
-    font-size: 22px;
+    margin: 0 0 var(--sp-md);
+    color: var(--c-accent);
+    font-size: var(--text-xl);
+    font-weight: 700;
+    letter-spacing: -0.3px;
 }
 
-.form-group {
-    margin-bottom: 16px;
+.form-group{
+    margin-bottom: var(--sp-md);
 }
 
-.status-message {
+.status-message{
     display: none;
-    margin-bottom: 15px;
-    padding: 10px 12px;
-    border-radius: 4px;
-    font-size: 14px;
+    margin-bottom: var(--sp-md);
+    padding: 10px var(--sp-sm);
+    border-radius: var(--r-sm);
+    font-size: var(--text-sm);
+    border-left: 3px solid;
 }
 
-.status-message.is-visible {
+.status-message.is-visible{
     display: block;
 }
 
-.status-message.is-error {
-    background-color: #3a1c1c;
-    border: 1px solid #6b2a2a;
-    color: #f5b5b5;
+.status-message.is-error{
+    background-color: rgba(220, 53, 69, 0.12);
+    border-color: var(--c-error);
+    color: #f5a0a8;
 }
 
-.status-message.is-success {
-    background-color: #1c3a22;
-    border: 1px solid #2a6b35;
-    color: #b6e0c2;
+.status-message.is-success{
+    background-color: rgba(40, 167, 69, 0.12);
+    border-color: var(--c-success);
+    color: #6fdc8c;
 }
 
-input {
+input{
     width: 100%;
-    padding: 10px 12px;
-    margin-top: 5px;
-    border: 1px solid #444;
-    border-radius: 4px;
-    background: #2a2a2a;
-    color: #e0e0e0;
-    font-size: 14px;
+    padding: 10px var(--sp-sm);
+    margin-top: var(--sp-xs);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-sm);
+    background: var(--c-base);
+    color: var(--c-text);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    transition: border-color var(--dur-micro) ease-out;
 }
 
-input::placeholder{ color: #666; }
+input::placeholder{ color: var(--c-text-muted); }
 
 input:focus{
-    outline: 2px solid greenyellow;
-    outline-offset: 1px;
-    border-color: greenyellow;
+    outline: none;
+    border-color: var(--c-accent);
+    box-shadow: 0 0 0 2px var(--c-accent-muted);
 }
 
-label {
+label{
     display: block;
-    margin-bottom: 4px;
-    color: #aaa;
-    font-size: 14px;
+    margin-bottom: var(--sp-xs);
+    color: var(--c-text-muted);
+    font-size: var(--text-sm);
+    font-weight: 500;
 }
 
-button {
+button{
     width: 100%;
     padding: 10px;
-    background: greenyellow;
-    color: #111;
+    background: var(--c-accent);
+    color: var(--c-accent-text);
     border: none;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     cursor: pointer;
-    font-size: 15px;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
     font-weight: 600;
+    transition: background var(--dur-micro) ease-out;
 }
 
-button:hover {
-    background: #a8f03c;
+button:hover{
+    background: var(--c-accent-hover);
 }
 
-button:disabled {
-    background: #555;
-    color: #999;
+button:disabled{
+    background: var(--c-elevated);
+    color: var(--c-text-muted);
     cursor: wait;
 }
 
-.form-link {
+.form-link{
     text-align: center;
-    margin-top: 16px;
-    font-size: 14px;
-    color: #888;
+    margin-top: var(--sp-md);
+    font-size: var(--text-sm);
+    color: var(--c-text-muted);
 }
 
 .form-link a{
-    color: greenyellow;
+    color: var(--c-accent);
     text-decoration: none;
+    transition: color var(--dur-micro) ease-out;
 }
 
 .form-link a:hover{
