@@ -1,10 +1,8 @@
 node_modules
-certificate.pem
-private.key
-users.db
-users.db-shm
-users.db-wal
-users.db-journal
+certs/*
+!certs/.gitkeep
+data/*
+!data/.gitkeep
 .idea
 .vscode
 .claude

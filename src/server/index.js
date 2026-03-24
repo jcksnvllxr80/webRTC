@@ -2,21 +2,24 @@ const express = require('express');
 const app = express();
 const fs = require('fs');
 const https = require('https');
+const path = require('path');
+const crypto = require('crypto');
+const session = require('express-session');
+const db = require('./db');
 
-// Your SSL certificates
+const ROOT_DIR = path.resolve(__dirname, '../..');
+const CERTS_DIR = path.join(ROOT_DIR, 'certs');
+const CONFIG_PATH = path.join(ROOT_DIR, 'config', 'server.json');
+const PUBLIC_DIR = path.join(ROOT_DIR, 'src', 'web', 'public');
+
 const options = {
-    key: fs.readFileSync('private.key'),
-    cert: fs.readFileSync('certificate.pem')
+    key: fs.readFileSync(path.join(CERTS_DIR, 'private.key')),
+    cert: fs.readFileSync(path.join(CERTS_DIR, 'certificate.pem'))
 };
 
 const server = https.createServer(options, app);
 const io = require('socket.io')(server);
-const crypto = require('crypto');
-const session = require('express-session');
-const path = require('path');
-const db = require('./db');
-
-const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
+const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
 const PORT = process.env.PORT || config.port || 3000;
 // Create the session middleware
 const sessionMiddleware = session({
@@ -33,6 +36,16 @@ const sessionMiddleware = session({
 app.use(sessionMiddleware);
 app.use(express.json());
 
+const publicPaths = new Set([
+    '/login.html',
+    '/login',
+    '/register.html',
+    '/register',
+    '/login.css',
+    '/login.js',
+    '/register.js'
+]);
+
 // Authentication middleware
 const requireAuth = (req, res, next) => {
     if (!req.session || !req.session.authenticated) {
@@ -46,7 +59,7 @@ app.get('/login.html', (req, res) => {
     if (req.session && req.session.authenticated) {
         return res.redirect('/');
     }
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+    res.sendFile(path.join(PUBLIC_DIR, 'login.html'));
 });
 
 app.post('/login', async (req, res) => {
@@ -64,7 +77,7 @@ app.get('/register.html', (req, res) => {
     if (req.session && req.session.authenticated) {
         return res.redirect('/');
     }
-    res.sendFile(path.join(__dirname, 'public', 'register.html'));
+    res.sendFile(path.join(PUBLIC_DIR, 'register.html'));
 });
 
 app.post('/register', async (req, res) => {
@@ -91,15 +104,14 @@ app.post('/register', async (req, res) => {
 
 // Protect all other routes
 app.use('/', (req, res, next) => {
-    if (req.path === '/login.html' || req.path === '/login' ||
-        req.path === '/register.html' || req.path === '/register') {
+    if (publicPaths.has(req.path)) {
         return next();
     }
     requireAuth(req, res, next);
 });
 
 // Serve static files after authentication check
-app.use(express.static('public'));
+app.use(express.static(PUBLIC_DIR));
 
 // Handle logout
 app.post('/logout', (req, res) => {
@@ -155,7 +167,7 @@ app.post('/api/rooms', (req, res) => {
 
 // Serve main app for room URLs
 app.get('/room/:roomId', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
 // Socket.IO configuration

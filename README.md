@@ -2,6 +2,23 @@
 
 A small WebRTC demo app served over HTTPS with login, registration, chat, friends, camera, screen sharing, and an Electron desktop client.
 
+## Project Layout
+
+```text
+.
+|-- certs/          HTTPS certificate files
+|-- config/         runtime config
+|-- data/           local SQLite database files
+|-- src/
+|   |-- desktop/    Electron client
+|   |-- server/     HTTPS + Socket.IO backend
+|   `-- web/public/ browser app
+|-- install.bat
+|-- install.sh
+|-- package.json
+`-- README.md
+```
+
 ## Getting Started
 
 ### 1. Prerequisites
@@ -22,21 +39,21 @@ On Windows PowerShell, use:
 .\install.bat
 ```
 
-The installer runs `npm install` and checks that the HTTPS certificate files are present.
+The installer runs `npm install`, rebuilds the native modules for the current Node.js runtime, and checks that the HTTPS certificate files are present.
 
 ### 3. Make sure the HTTPS certificate files exist
 
-This app expects these files in the project root:
+This app expects these files in `certs/`:
 
-* `private.key`
-* `certificate.pem`
+* `certs/private.key`
+* `certs/certificate.pem`
 
 They are already in this repo, so the default setup works without any extra certificate step.
 
 If you want to regenerate them yourself, use OpenSSL:
 
 ```bash
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout private.key -out certificate.pem
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout certs/private.key -out certs/certificate.pem
 ```
 
 ### 4. Start the server
@@ -108,7 +125,7 @@ npm run electron
 3. In the Electron connection window, use:
 
 * Server IP: `localhost` if the server is on the same computer
-* Port: `8001` unless you changed it in `config.json` or with `PORT`
+* Port: `8001` unless you changed it in `config/server.json` or with `PORT`
 
 After connecting, the desktop client opens the same login and room flow as the browser version.
 
@@ -124,9 +141,9 @@ This creates packaged output in the `dist` folder. The packaged Electron app sti
 
 ## Notes
 
-* `users.db` is created automatically in the project root the first time the app runs.
+* `data/users.db` is created automatically the first time the app runs.
 * The server listens on `0.0.0.0`, so other devices on the same network can reach it.
-* The default port comes from `config.json`. You can also override it with the `PORT` environment variable before starting the server.
+* The default port comes from `config/server.json`. You can also override it with the `PORT` environment variable before starting the server.
 * The browser version will show a self-signed certificate warning the first time you connect.
 * This project uses public STUN servers and does not include a TURN server, so same-network testing is the simplest and most reliable setup.
 * Electron build output is written to the `dist` folder.
@@ -147,16 +164,12 @@ Runtime package dependencies:
 * `better-sqlite3`
 * `express`
 * `express-session`
-* `https`
-* `node-fetch`
 * `socket.io`
 
 Desktop build dependencies:
 
-* `concurrently`
 * `electron`
 * `electron-builder`
-* `wait-on`
 
 ## Inspired By
 

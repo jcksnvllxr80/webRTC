@@ -11,6 +11,30 @@
     box-sizing: border-box;
 }
 
+.status-message {
+    display: none;
+    margin-bottom: 15px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.status-message.is-visible {
+    display: block;
+}
+
+.status-message.is-error {
+    background-color: #fde8e8;
+    border: 1px solid #f5b5b5;
+    color: #8a1c1c;
+}
+
+.status-message.is-success {
+    background-color: #e8f7ec;
+    border: 1px solid #b6e0c2;
+    color: #1f6b35;
+}
+
 input {
     box-sizing: border-box;
     width: 100%;
@@ -33,6 +57,11 @@ button {
 
 button:hover {
     background-color: #0056b3;
+}
+
+button:disabled {
+    background-color: #7aa7da;
+    cursor: wait;
 }
 
 label {

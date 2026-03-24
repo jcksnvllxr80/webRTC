@@ -17,11 +17,16 @@ fi
 echo "Installing project dependencies..."
 npm install
 
-if [ ! -f "private.key" ] || [ ! -f "certificate.pem" ]; then
+echo "Rebuilding native modules for the current Node.js runtime..."
+npm rebuild bcrypt better-sqlite3
+
+mkdir -p certs data
+
+if [ ! -f "certs/private.key" ] || [ ! -f "certs/certificate.pem" ]; then
     echo
     echo "Warning: HTTPS certificate files are missing."
     echo "Generate HTTPS certificates with:"
-    echo "openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout private.key -out certificate.pem"
+    echo "openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout certs/private.key -out certs/certificate.pem"
 fi
 
 echo

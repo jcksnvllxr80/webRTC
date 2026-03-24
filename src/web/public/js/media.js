@@ -1,6 +1,34 @@
 import { state, socket } from './state.js';
 import { createOffer } from './webrtc.js';
 
+function formatMediaError(prefix, error) {
+    const name = error?.name || 'Error';
+    const message = error?.message || 'Unknown error';
+    return `${prefix}: ${name} - ${message}`;
+}
+
+function isElectronDesktop() {
+    return typeof window !== 'undefined' && !!window.electronAPI?.pickDisplaySource;
+}
+
+function getElectronDesktopConstraints(sourceId) {
+    const baseConstraints = {
+        mandatory: {
+            chromeMediaSource: 'desktop',
+            chromeMediaSourceId: sourceId
+        }
+    };
+
+    const selection = document.getElementById('resolution-select').value;
+    if (selection !== 'native') {
+        const [width, height] = selection.split('x').map(Number);
+        baseConstraints.mandatory.maxWidth = width;
+        baseConstraints.mandatory.maxHeight = height;
+    }
+
+    return baseConstraints;
+}
+
 export function getVideoConstraints() {
     const val = document.getElementById('resolution-select').value;
     if (val === 'native') {
@@ -25,7 +53,7 @@ export async function initCamera() {
         await createOffer();
     } catch (error) {
         console.error('Error accessing camera:', error);
-        alert('Could not access camera and/or microphone');
+        alert(formatMediaError('Could not access camera and/or microphone', error));
     }
 }
 
@@ -35,10 +63,22 @@ export async function shareScreen() {
             stopCamera();
         }
 
-        state.localStream = await navigator.mediaDevices.getDisplayMedia({
-            video: getVideoConstraints(),
-            audio: true
-        });
+        if (isElectronDesktop()) {
+            const source = await window.electronAPI.pickDisplaySource();
+            if (!source) {
+                return;
+            }
+
+            state.localStream = await navigator.mediaDevices.getUserMedia({
+                audio: false,
+                video: getElectronDesktopConstraints(source.id)
+            });
+        } else {
+            state.localStream = await navigator.mediaDevices.getDisplayMedia({
+                video: getVideoConstraints(),
+                audio: true
+            });
+        }
 
         document.getElementById('user-1').srcObject = state.localStream;
 
@@ -52,7 +92,7 @@ export async function shareScreen() {
         await createOffer();
     } catch (error) {
         console.error('Error sharing screen:', error);
-        alert('Could not share screen');
+        alert(formatMediaError('Could not share screen', error));
     }
 }
 

@@ -23,14 +23,25 @@ if errorlevel 1 (
     exit /b 1
 )
 
+echo Rebuilding native modules for the current Node.js runtime...
+call npm rebuild bcrypt better-sqlite3
+if errorlevel 1 (
+    echo.
+    echo Native module rebuild failed.
+    exit /b 1
+)
+
+if not exist "certs" mkdir certs
+if not exist "data" mkdir data
+
 set "missing_certs="
-if not exist "private.key" set "missing_certs=1"
-if not exist "certificate.pem" set "missing_certs=1"
+if not exist "certs\\private.key" set "missing_certs=1"
+if not exist "certs\\certificate.pem" set "missing_certs=1"
 if defined missing_certs (
     echo.
     echo Warning: HTTPS certificate files are missing.
     echo Generate HTTPS certificates with:
-    echo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout private.key -out certificate.pem
+    echo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout certs/private.key -out certs/certificate.pem
 )
 
 echo.
