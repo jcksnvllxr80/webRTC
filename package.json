@@ -1,6 +1,6 @@
 {
   "name": "webrtc",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "A little WebRTC sample project with hosted https server\n",
   "main": "electron.js",
   "scripts": {

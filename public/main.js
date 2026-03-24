@@ -214,3 +214,33 @@ socket.on('user-stopped-stream', (stoppedUserId) => {
         remoteVideo.srcObject = null;
     }
 });
+
+// --- Enlarge / Fullscreen controls ---
+
+document.getElementById('enlarge-btn').addEventListener('click', () => {
+    document.body.classList.toggle('enlarged');
+});
+
+document.getElementById('fullscreen-btn').addEventListener('click', () => {
+    const wrapper = document.getElementById('remote-wrapper');
+    const pip = document.getElementById('pip-preview');
+
+    if (!document.fullscreenElement) {
+        // Mirror local stream into PIP preview
+        if (localStream) {
+            pip.srcObject = localStream;
+        }
+        wrapper.requestFullscreen().catch(err => {
+            console.error('Fullscreen failed:', err);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+});
+
+document.addEventListener('fullscreenchange', () => {
+    const pip = document.getElementById('pip-preview');
+    if (!document.fullscreenElement) {
+        pip.srcObject = null;
+    }
+});

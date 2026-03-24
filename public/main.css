@@ -22,6 +22,103 @@ textarea{
     width: 100%;
 }
 
+/* Remote video wrapper */
+#remote-wrapper{
+    position: relative;
+}
+
+#remote-controls{
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+#remote-wrapper:hover #remote-controls{
+    opacity: 1;
+}
+
+#remote-controls button{
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.55);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#remote-controls button:hover{
+    background: rgba(0,0,0,0.8);
+}
+
+/* PIP preview — hidden by default, shown in fullscreen */
+#pip-preview{
+    display: none;
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 160px;
+    border: 2px solid greenyellow;
+    border-radius: 6px;
+    z-index: 10;
+    background: rgb(63,62,62);
+}
+
+/* Enlarged mode */
+body.enlarged{
+    width: 96vw;
+    max-width: none;
+}
+
+body.enlarged #videos{
+    grid-template-columns: 1fr;
+}
+
+body.enlarged #user-1{
+    width: 280px;
+    justify-self: center;
+}
+
+body.enlarged #user-2{
+    width: 100%;
+}
+
+/* Fullscreen mode for remote wrapper */
+#remote-wrapper:fullscreen{
+    background: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#remote-wrapper:fullscreen #user-2{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border: none;
+}
+
+#remote-wrapper:fullscreen #remote-controls{
+    bottom: 24px;
+    right: 24px;
+}
+
+#remote-wrapper:fullscreen #pip-preview{
+    display: block;
+}
+
+/* Webkit prefix for Safari */
+#remote-wrapper:-webkit-full-screen #pip-preview{
+    display: block;
+}
+
 @media screen and (max-width:800px) {
     body{
         width:100%;
