@@ -48,11 +48,19 @@ function hasAnyMedia() {
     return state.media.audio || state.media.video || state.media.screen;
 }
 
+function getAudioConstraints() {
+    return {
+        noiseSuppression: state.audioSettings.noiseSuppression,
+        echoCancellation: state.audioSettings.echoCancellation,
+        autoGainControl: state.audioSettings.autoGainControl
+    };
+}
+
 // Join audio — mic only
 export async function initAudio() {
     try {
         state.audioStream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
+            audio: getAudioConstraints(),
             video: false
         });
 
@@ -187,6 +195,38 @@ export function stopVideo() {
     if (!hasAnyMedia()) {
         closePeerConnection();
         socket.emit('user-stopped-stream', state.roomId, socket.id);
+    }
+}
+
+// Re-apply audio settings to a live mic stream
+export async function reapplyAudioSettings() {
+    if (!state.audioStream) return; // no live audio, nothing to do
+
+    try {
+        // Stop old audio tracks
+        state.audioStream.getTracks().forEach(track => track.stop());
+
+        // Get new stream with updated constraints
+        const newStream = await navigator.mediaDevices.getUserMedia({
+            audio: getAudioConstraints(),
+            video: false
+        });
+
+        state.audioStream = newStream;
+        const newTrack = newStream.getAudioTracks()[0];
+
+        // Replace the audio track on the peer connection
+        if (state.peerConnection) {
+            const senders = state.peerConnection.getSenders();
+            for (const sender of senders) {
+                if (sender.track && sender.track.kind === 'audio') {
+                    await sender.replaceTrack(newTrack);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error reapplying audio settings:', error);
+        throw error; // let the caller handle UI feedback
     }
 }
 

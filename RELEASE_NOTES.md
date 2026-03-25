@@ -1,5 +1,19 @@
 # Release Notes
 
+## v0.7.0 — 2026-03-25
+
+### Audio Settings Menu
+
+- New gear icon in the controls bar opens a settings dropdown panel
+- Three toggle switches: Noise Suppression, Echo Cancellation, Auto Gain Control — all on by default
+- Toggles apply immediately to live audio via `RTCRtpSender.replaceTrack()` — no need to rejoin
+- Settings persist to localStorage across sessions
+- Panel dismisses on click outside or Escape key
+- Toggle reverts with inline error if mic re-acquisition fails
+- Custom CSS toggle switch component aligned with DESIGN.md tokens
+
+---
+
 ## v0.6.1 — 2026-03-25
 
 ### Independent Media Controls

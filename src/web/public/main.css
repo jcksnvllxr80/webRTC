@@ -402,6 +402,108 @@ body{
     opacity: 0.85;
 }
 
+/* ── Settings panel ── */
+#settings-panel-anchor{
+    position: relative;
+}
+
+#settings-btn{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#settings-panel{
+    position: absolute;
+    bottom: calc(100% + var(--sp-sm));
+    left: 50%;
+    transform: translateX(-50%);
+    width: 240px;
+    padding: var(--sp-md);
+    background: var(--c-elevated);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-md);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    z-index: 100;
+}
+
+.settings-header{
+    margin: 0 0 var(--sp-sm);
+    font-size: var(--text-xs);
+    color: var(--c-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+}
+
+.setting-row{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: var(--text-sm);
+    color: var(--c-text);
+}
+
+.setting-row + .setting-row{
+    border-top: 1px solid var(--c-border-subtle);
+}
+
+.setting-error{
+    font-size: var(--text-xs);
+    color: var(--c-error);
+    margin-top: var(--sp-xs);
+}
+
+/* ── Toggle switch ── */
+.toggle{
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.toggle input{
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-track{
+    display: block;
+    width: 36px;
+    height: 20px;
+    border-radius: var(--r-lg);
+    background: var(--c-overlay);
+    transition: background var(--dur-short) ease-out;
+    position: relative;
+}
+
+.toggle-thumb{
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    background: #fff;
+    transition: transform var(--dur-short) ease-out;
+}
+
+.toggle input:checked + .toggle-track{
+    background: var(--c-accent);
+}
+
+.toggle input:checked + .toggle-track .toggle-thumb{
+    transform: translateX(16px);
+}
+
+.toggle input:focus-visible + .toggle-track{
+    outline: 2px solid var(--c-accent);
+    outline-offset: 2px;
+}
+
 /* ── Video section ── */
 #video-section{
     padding: var(--sp-sm) var(--sp-md) 0;

@@ -1,10 +1,11 @@
-import { initCamera, shareScreen, initAudio, leaveAudio, stopVideo } from './media.js';
+import { initCamera, shareScreen, initAudio, leaveAudio, stopVideo, reapplyAudioSettings } from './media.js';
 import { setupSignalingListeners } from './webrtc.js';
 import { setupChatListeners } from './chat.js';
 import { setupUIListeners } from './ui.js';
 import { setupFriendsListeners } from './friends.js';
 import { setupRoomUI, isInRoom } from './room.js';
 import { showOnboarding } from './onboarding.js';
+import { state, saveAudioSettings } from './state.js';
 
 // Always set up room UI (lobby or call view)
 setupRoomUI();
@@ -57,6 +58,66 @@ if (isInRoom()) {
     document.getElementById('stop-video-btn').addEventListener('click', () => {
         stopVideo();
     });
+
+    // Settings panel
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsPanel = document.getElementById('settings-panel');
+    const toggleNS = document.getElementById('toggle-ns');
+    const toggleEC = document.getElementById('toggle-ec');
+    const toggleAGC = document.getElementById('toggle-agc');
+
+    // Init checkboxes from saved state
+    toggleNS.checked = state.audioSettings.noiseSuppression;
+    toggleEC.checked = state.audioSettings.echoCancellation;
+    toggleAGC.checked = state.audioSettings.autoGainControl;
+
+    settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Close on click outside
+    document.addEventListener('click', (e) => {
+        if (settingsPanel.style.display !== 'none' && !settingsPanel.contains(e.target) && e.target !== settingsBtn) {
+            settingsPanel.style.display = 'none';
+        }
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && settingsPanel.style.display !== 'none') {
+            settingsPanel.style.display = 'none';
+        }
+    });
+
+    // Toggle handlers
+    async function handleToggle(checkbox, key) {
+        const prev = state.audioSettings[key];
+        state.audioSettings[key] = checkbox.checked;
+        saveAudioSettings();
+
+        // Remove any previous error
+        const row = checkbox.closest('.setting-row');
+        const existing = row.querySelector('.setting-error');
+        if (existing) existing.remove();
+
+        try {
+            await reapplyAudioSettings();
+        } catch {
+            // Revert on failure
+            state.audioSettings[key] = prev;
+            checkbox.checked = prev;
+            saveAudioSettings();
+            const err = document.createElement('div');
+            err.className = 'setting-error';
+            err.textContent = 'Could not apply setting';
+            row.appendChild(err);
+        }
+    }
+
+    toggleNS.addEventListener('change', () => handleToggle(toggleNS, 'noiseSuppression'));
+    toggleEC.addEventListener('change', () => handleToggle(toggleEC, 'echoCancellation'));
+    toggleAGC.addEventListener('change', () => handleToggle(toggleAGC, 'autoGainControl'));
 
     setupSignalingListeners();
     setupChatListeners();
