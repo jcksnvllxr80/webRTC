@@ -1,5 +1,12 @@
 # Release Notes
 
+## v0.5.2 — 2026-03-25
+
+- Expanded Electron build documentation in README with platform-specific targets, cross-compilation commands, and output paths
+- Added note about `npm audit` warnings being build-time only (from `electron-builder` dev dependencies)
+
+---
+
 ## v0.5.1 — 2026-03-25
 
 fix a few mugs during e2e tests

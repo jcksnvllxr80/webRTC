@@ -40,7 +40,9 @@ export function getVideoConstraints() {
 
 export async function initCamera() {
     try {
-        console.log("Requesting camera access...");
+        if (state.localStream) {
+            stopCamera();
+        }
         state.localStream = await navigator.mediaDevices.getUserMedia({
             video: getVideoConstraints(),
             audio: true
