@@ -1,5 +1,45 @@
 # Release Notes
 
+## v0.5.2 — 2026-03-25
+
+- Expanded Electron build documentation in README with platform-specific targets, cross-compilation commands, and output paths
+- Added note about `npm audit` warnings being build-time only (from `electron-builder` dev dependencies)
+
+---
+
+## v0.5.1 — 2026-03-25
+
+fix a few mugs during e2e tests
+
+---
+
+## v0.5.0 — 2026-03-25
+
+### implement three features:
+
+  1. Online/Offline Friend Status
+  - Server (src/server/index.js): Tracks connected users in an onlineUsers Map, emits user-online/user-offline events, exposes /api/online endpoint
+  - Client (friends.js): Fetches online users on load, listens for real-time status changes, renders green (glowing) / grey dots next to each friend name
+  - CSS: .status-dot.online with green + box-shadow glow, .status-dot.offline in muted grey
+
+  2. Interaction States
+
+  - Loading text on every async button (Create Room → "Creating...", Start Camera → "Starting...", etc.)
+  - Disabled state while loading (opacity: 0.6, cursor: not-allowed)
+  - Active press feedback: transform: scale(0.97) on click
+  - Empty states: friends list shows helpful message, chat shows centered italic placeholder that clears on first message
+  - Error recovery: buttons re-enable and restore text on failure
+
+  3. First-Use Onboarding
+
+  - New onboarding.js module with a tooltip overlay walkthrough
+  - 3 lobby steps (create room, join room, friends) or 4 call steps (camera, screen share, copy link, chat)
+  - Highlights the target element above a semi-transparent overlay
+  - Skip/Next/Done buttons with step counter
+  - Persists to localStorage so it only shows once per browser
+
+---
+
 ## v0.4.0 — 2026-03-24
 
 ### Design System Implementation
