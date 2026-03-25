@@ -17,3 +17,28 @@
 - **HTML cleanup:** Set `lang="en"` on all pages, added font preconnect hints, updated page titles (Login/Register now include "— WebRTC")
 - Updated `CLAUDE.md` with design system enforcement section
 - Marked design consultation TODO as complete in `TODOS.md`
+
+### Online/Offline Friend Status
+
+- Server now tracks connected users via Socket.IO — maintains a `username → Set<socketId>` map
+- New `/api/online` endpoint returns array of currently online usernames
+- Friends list shows green/grey status dots next to each name — green with glow for online, muted grey for offline
+- Real-time updates: `user-online` and `user-offline` Socket.IO events update dots live without polling
+
+### Interaction States
+
+- **Loading feedback on all buttons:** Create Room → "Creating...", Join → "Joining...", Start Camera → "Starting...", Share Screen → "Sharing...", Add Friend → "Adding...", Invite → "Creating...", Remove → "Removing...", Leave → "Leaving..."
+- **Active press feedback:** All buttons scale down slightly (97%) on click via `transform: scale(0.97)`
+- **Disabled state:** Global `button:disabled` gets `opacity: 0.6` and `cursor: not-allowed`
+- **Empty states:** Friends list shows "No friends yet — add someone after joining a call." instead of bare "No friends yet"; chat shows centered italic "No messages yet — say hello!" placeholder that clears on first message
+- **Loading state:** Friends list shows "Loading..." while fetching; error state shows "Failed to load friends."
+- **Error recovery:** Buttons re-enable and restore original text if an action fails
+
+### First-Use Onboarding
+
+- Lightweight guided tooltip overlay for first-time users (persisted to localStorage)
+- **Lobby steps:** Create Room → Join Room → Friends List (3 steps)
+- **Call steps:** Start Camera → Share Screen → Copy Link → Chat (4 steps)
+- Each step highlights the target element above the overlay with an accent outline
+- Skip button to dismiss, Next/Done to advance — counter shows progress (e.g., "2 / 3")
+- Only shows once per browser — setting stored as `webrtc-onboarding-done` in localStorage

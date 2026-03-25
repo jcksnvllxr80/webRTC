@@ -135,6 +135,10 @@ button:hover{
     background: var(--c-accent-hover);
 }
 
+button:active:not(:disabled){
+    transform: scale(0.97);
+}
+
 button:disabled{
     background: var(--c-elevated);
     color: var(--c-text-muted);

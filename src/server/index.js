@@ -183,9 +183,28 @@ io.use((socket, next) => {
     }
 });
 
+// Track online users: username -> Set of socket IDs
+const onlineUsers = new Map();
+
+// API endpoint for online status
+app.get('/api/online', (req, res) => {
+    const usernames = Array.from(onlineUsers.keys());
+    res.json(usernames);
+});
+
 // Socket.IO event handlers
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
+    const username = socket.request.session?.username;
+
+    // Track online status
+    if (username) {
+        if (!onlineUsers.has(username)) {
+            onlineUsers.set(username, new Set());
+        }
+        onlineUsers.get(username).add(socket.id);
+        io.emit('user-online', username);
+    }
 
     socket.on('join-room', (roomId, userId) => {
         socket.join(roomId);
@@ -207,6 +226,13 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
+        if (username && onlineUsers.has(username)) {
+            onlineUsers.get(username).delete(socket.id);
+            if (onlineUsers.get(username).size === 0) {
+                onlineUsers.delete(username);
+                io.emit('user-offline', username);
+            }
+        }
     });
 
     // handler for chat messages

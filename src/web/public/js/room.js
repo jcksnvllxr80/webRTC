@@ -21,13 +21,18 @@ export function setupRoomUI() {
     }
 
     // Create room button
-    document.getElementById('create-room-btn').addEventListener('click', async () => {
+    const createBtn = document.getElementById('create-room-btn');
+    createBtn.addEventListener('click', async () => {
+        createBtn.disabled = true;
+        createBtn.textContent = 'Creating...';
         try {
             const res = await fetch('/api/rooms', { method: 'POST' });
             const { roomId } = await res.json();
             window.location.href = `/room/${roomId}`;
         } catch (err) {
             console.error('Create room error:', err);
+            createBtn.textContent = 'Create Room';
+            createBtn.disabled = false;
         }
     });
 
@@ -36,6 +41,10 @@ export function setupRoomUI() {
         e.preventDefault();
         const input = document.getElementById('join-room-input').value.trim();
         if (!input) return;
+
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Joining...';
 
         // Support both bare room IDs and full URLs
         const urlMatch = input.match(/\/room\/([a-zA-Z0-9]+)/);
@@ -59,6 +68,8 @@ export function setupRoomUI() {
     const leaveBtn = document.getElementById('leave-room-btn');
     if (leaveBtn) {
         leaveBtn.addEventListener('click', () => {
+            leaveBtn.disabled = true;
+            leaveBtn.textContent = 'Leaving...';
             window.location.href = '/';
         });
     }

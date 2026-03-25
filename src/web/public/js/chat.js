@@ -2,6 +2,10 @@ import { state, socket } from './state.js';
 
 function addMessageToChat(username, message) {
     const messagesDiv = document.getElementById('messages');
+    // Clear empty state placeholder
+    const empty = messagesDiv.querySelector('.chat-empty');
+    if (empty) empty.remove();
+
     const messageElement = document.createElement('p');
     messageElement.style.margin = '5px 0';
     const strong = document.createElement('strong');
