@@ -131,13 +131,38 @@ After connecting, the desktop client opens the same login and room flow as the b
 
 ### Build the desktop app
 
-Run:
+Building packages the Electron client into a standalone installer. The packaged app still requires a running WebRTC HTTPS server to connect to.
+
+**Prerequisites:** The dev dependencies (`electron` and `electron-builder`) must be installed. They are included by default when you run the installer or `npm install`.
+
+**Build for your current platform:**
 
 ```bash
 npm run build
 ```
 
-This creates packaged output in the `dist` folder. The packaged Electron app still expects a reachable WebRTC HTTPS server.
+This produces platform-specific output in the `dist/` folder:
+
+| Platform | Target | Output |
+|----------|--------|--------|
+| Windows  | NSIS installer | `dist/WebRTC Desktop Setup x.x.x.exe` |
+| macOS    | DMG | `dist/WebRTC Desktop-x.x.x.dmg` |
+| Linux    | AppImage | `dist/WebRTC Desktop-x.x.x.AppImage` |
+
+**Build for a specific platform** (cross-compilation may require additional tooling):
+
+```bash
+# Windows
+npx electron-builder --win
+
+# macOS (must be run on macOS)
+npx electron-builder --mac
+
+# Linux
+npx electron-builder --linux
+```
+
+**Note:** The build dependencies (`electron`, `electron-builder`) account for the majority of `npm audit` warnings. These are build-time only and do not affect the running server or browser clients. You can verify with `npm audit --omit=dev`.
 
 ## Notes
 
