@@ -8,7 +8,10 @@ export const state = {
     peerConnection: null,
     localStream: null,
     remoteStream: null,
-    roomId: getRoomIdFromUrl()
+    roomId: getRoomIdFromUrl(),
+    mediaState: 'chat',       // 'chat' | 'audio' | 'video' | 'screen'
+    participants: new Map(),   // socketId -> { username, mediaState }
+    audioStream: null          // mic-only stream (separate from localStream which holds video)
 };
 
 export const servers = {

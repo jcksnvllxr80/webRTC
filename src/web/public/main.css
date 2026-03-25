@@ -315,6 +315,93 @@ body{
     color: var(--c-text);
 }
 
+/* ── Participant list ── */
+#participant-list{
+    padding: var(--sp-sm) var(--sp-md);
+    border-bottom: 1px solid var(--c-border);
+}
+
+#participant-list h4{
+    margin: 0 0 var(--sp-xs);
+    font-size: var(--text-xs);
+    color: var(--c-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+}
+
+#participants{
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    gap: var(--sp-md);
+}
+
+#participants li{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--text-sm);
+}
+
+.media-state-dot{
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    flex-shrink: 0;
+}
+
+.media-state-dot.state-chat{
+    background: var(--c-text-muted);
+}
+
+.media-state-dot.state-audio{
+    background: var(--c-accent);
+    box-shadow: 0 0 4px var(--c-accent);
+}
+
+.media-state-dot.state-video,
+.media-state-dot.state-screen{
+    background: var(--c-info);
+    box-shadow: 0 0 4px var(--c-info);
+}
+
+/* ── Join/Leave audio button accents ── */
+#join-audio-btn{
+    background: var(--c-accent) !important;
+    color: var(--c-accent-text) !important;
+    border: none !important;
+    font-weight: 600;
+}
+
+#join-audio-btn:hover{
+    background: var(--c-accent-hover) !important;
+}
+
+#leave-audio-btn{
+    background: var(--c-error) !important;
+    color: #fff !important;
+    border: none !important;
+    font-weight: 600;
+}
+
+#leave-audio-btn:hover{
+    opacity: 0.85;
+}
+
+#stop-video-btn{
+    background: var(--c-warning) !important;
+    color: #111 !important;
+    border: none !important;
+    font-weight: 600;
+}
+
+#stop-video-btn:hover{
+    opacity: 0.85;
+}
+
 /* ── Video section ── */
 #video-section{
     padding: var(--sp-sm) var(--sp-md) 0;

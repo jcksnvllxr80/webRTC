@@ -31,8 +31,8 @@ export function setupUIListeners() {
         const pip = document.getElementById('pip-preview');
 
         if (!document.fullscreenElement) {
-            if (state.localStream) {
-                pip.srcObject = state.localStream;
+            if (state.localStream || state.audioStream) {
+                pip.srcObject = state.localStream || state.audioStream;
             }
             wrapper.requestFullscreen().catch(err => {
                 console.error('Fullscreen failed:', err);

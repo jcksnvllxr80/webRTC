@@ -1,4 +1,4 @@
-import { initCamera, shareScreen, stopCamera } from './media.js';
+import { initCamera, shareScreen, stopCamera, initAudio, leaveAudio, stopVideo } from './media.js';
 import { setupSignalingListeners } from './webrtc.js';
 import { setupChatListeners } from './chat.js';
 import { setupUIListeners } from './ui.js';
@@ -12,37 +12,60 @@ setupUIListeners();
 
 // Only initialize call features when inside a room
 if (isInRoom()) {
-    const startCameraBtn = document.getElementById('start-camera');
-    const shareScreenBtn = document.getElementById('share-screen');
-    const stopCameraBtn = document.getElementById('stop-camera');
+    // Join Audio
+    document.getElementById('join-audio-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('join-audio-btn');
+        btn.disabled = true;
+        btn.textContent = 'Joining...';
+        try {
+            await initAudio();
+        } catch {
+            // initAudio handles its own errors
+        }
+        btn.textContent = 'Join Audio';
+        btn.disabled = false;
+    });
 
+    // Leave Audio
+    document.getElementById('leave-audio-btn').addEventListener('click', () => {
+        leaveAudio();
+    });
+
+    // Start Camera
+    const startCameraBtn = document.getElementById('start-camera');
     startCameraBtn.addEventListener('click', async () => {
         startCameraBtn.disabled = true;
         startCameraBtn.textContent = 'Starting...';
         try {
             await initCamera();
-            startCameraBtn.textContent = 'Start Camera';
-            startCameraBtn.disabled = false;
         } catch {
-            startCameraBtn.textContent = 'Start Camera';
-            startCameraBtn.disabled = false;
+            // initCamera handles its own errors
         }
+        startCameraBtn.textContent = 'Start Camera';
+        startCameraBtn.disabled = false;
     });
 
+    // Share Screen
+    const shareScreenBtn = document.getElementById('share-screen');
     shareScreenBtn.addEventListener('click', async () => {
         shareScreenBtn.disabled = true;
         shareScreenBtn.textContent = 'Sharing...';
         try {
             await shareScreen();
-            shareScreenBtn.textContent = 'Share Screen';
-            shareScreenBtn.disabled = false;
         } catch {
-            shareScreenBtn.textContent = 'Share Screen';
-            shareScreenBtn.disabled = false;
+            // shareScreen handles its own errors
         }
+        shareScreenBtn.textContent = 'Share Screen';
+        shareScreenBtn.disabled = false;
     });
 
-    stopCameraBtn.addEventListener('click', () => {
+    // Stop Video
+    document.getElementById('stop-video-btn').addEventListener('click', () => {
+        stopVideo();
+    });
+
+    // Legacy stop camera (hidden but still wired)
+    document.getElementById('stop-camera').addEventListener('click', () => {
         stopCamera();
     });
 

@@ -186,6 +186,9 @@ io.use((socket, next) => {
 // Track online users: username -> Set of socket IDs
 const onlineUsers = new Map();
 
+// Track room membership: roomId -> Map<socketId, { username, mediaState }>
+const rooms = new Map();
+
 // API endpoint for online status
 app.get('/api/online', (req, res) => {
     const usernames = Array.from(onlineUsers.keys());
@@ -207,9 +210,63 @@ io.on('connection', (socket) => {
     }
 
     socket.on('join-room', (roomId, userId) => {
+        // Enforce 2-person room limit
+        const room = rooms.get(roomId);
+        if (room && room.size >= 2 && !room.has(socket.id)) {
+            socket.emit('room-full');
+            return;
+        }
+
         socket.join(roomId);
-        const username = socket.request.session.username;
+        socket.data.roomId = roomId;
+
+        // Add to rooms map
+        if (!rooms.has(roomId)) {
+            rooms.set(roomId, new Map());
+        }
+        rooms.get(roomId).set(socket.id, { username, mediaState: 'chat' });
+
+        // Send full participant list to everyone in the room
+        const participants = Object.fromEntries(rooms.get(roomId));
+        io.in(roomId).emit('room-participants', participants);
+
+        // Notify others that a new user connected
         socket.to(roomId).emit('user-connected', userId, username);
+    });
+
+    socket.on('join-audio', (roomId) => {
+        const room = rooms.get(roomId);
+        if (!room || !room.has(socket.id)) return;
+        room.get(socket.id).mediaState = 'audio';
+        io.in(roomId).emit('participant-updated', socket.id, room.get(socket.id));
+    });
+
+    socket.on('start-video', (roomId) => {
+        const room = rooms.get(roomId);
+        if (!room || !room.has(socket.id)) return;
+        room.get(socket.id).mediaState = 'video';
+        io.in(roomId).emit('participant-updated', socket.id, room.get(socket.id));
+    });
+
+    socket.on('start-screen', (roomId) => {
+        const room = rooms.get(roomId);
+        if (!room || !room.has(socket.id)) return;
+        room.get(socket.id).mediaState = 'screen';
+        io.in(roomId).emit('participant-updated', socket.id, room.get(socket.id));
+    });
+
+    socket.on('stop-media', (roomId) => {
+        const room = rooms.get(roomId);
+        if (!room || !room.has(socket.id)) return;
+        room.get(socket.id).mediaState = 'audio';
+        io.in(roomId).emit('participant-updated', socket.id, room.get(socket.id));
+    });
+
+    socket.on('leave-audio', (roomId) => {
+        const room = rooms.get(roomId);
+        if (!room || !room.has(socket.id)) return;
+        room.get(socket.id).mediaState = 'chat';
+        io.in(roomId).emit('participant-updated', socket.id, room.get(socket.id));
     });
 
     socket.on('offer', (offer, roomId) => {
@@ -226,6 +283,19 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
+
+        // Clean up room membership
+        const roomId = socket.data.roomId;
+        if (roomId && rooms.has(roomId)) {
+            rooms.get(roomId).delete(socket.id);
+            if (rooms.get(roomId).size === 0) {
+                rooms.delete(roomId);
+            } else {
+                const participants = Object.fromEntries(rooms.get(roomId));
+                io.in(roomId).emit('room-participants', participants);
+            }
+        }
+
         if (username && onlineUsers.has(username)) {
             onlineUsers.get(username).delete(socket.id);
             if (onlineUsers.get(username).size === 0) {

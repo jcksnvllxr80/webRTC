@@ -4,6 +4,63 @@ export function isInRoom() {
     return !!state.roomId;
 }
 
+export function renderParticipants() {
+    const ul = document.getElementById('participants');
+    if (!ul) return;
+
+    ul.innerHTML = '';
+    for (const [, data] of state.participants) {
+        const li = document.createElement('li');
+
+        const dot = document.createElement('span');
+        dot.className = `media-state-dot state-${data.mediaState}`;
+
+        const name = document.createElement('span');
+        name.textContent = data.username;
+
+        li.appendChild(dot);
+        li.appendChild(name);
+        ul.appendChild(li);
+    }
+}
+
+export function updateControlsForMediaState() {
+    const joinAudio = document.getElementById('join-audio-btn');
+    const leaveAudio = document.getElementById('leave-audio-btn');
+    const startCamera = document.getElementById('start-camera');
+    const shareScreen = document.getElementById('share-screen');
+    const stopVideo = document.getElementById('stop-video-btn');
+    const stopCamera = document.getElementById('stop-camera');
+    const resSelect = document.getElementById('resolution-select');
+
+    // Hide all first
+    joinAudio.style.display = 'none';
+    leaveAudio.style.display = 'none';
+    startCamera.style.display = 'none';
+    shareScreen.style.display = 'none';
+    stopVideo.style.display = 'none';
+    stopCamera.style.display = 'none';
+    resSelect.style.display = 'none';
+
+    switch (state.mediaState) {
+        case 'chat':
+            joinAudio.style.display = '';
+            break;
+        case 'audio':
+            leaveAudio.style.display = '';
+            startCamera.style.display = '';
+            shareScreen.style.display = '';
+            resSelect.style.display = '';
+            break;
+        case 'video':
+        case 'screen':
+            leaveAudio.style.display = '';
+            stopVideo.style.display = '';
+            resSelect.style.display = '';
+            break;
+    }
+}
+
 export function setupRoomUI() {
     const lobby = document.getElementById('lobby');
     const callUI = document.getElementById('call-ui');
@@ -14,6 +71,7 @@ export function setupRoomUI() {
         callUI.style.display = 'block';
         document.getElementById('room-id-display').textContent = state.roomId;
         document.getElementById('room-link').value = window.location.href;
+        updateControlsForMediaState();
     } else {
         // No room — show lobby, hide call UI
         lobby.style.display = 'block';

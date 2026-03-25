@@ -1,5 +1,37 @@
 # Release Notes
 
+## v0.6.0 — 2026-03-25
+
+### Participant List & Tiered Media Joining
+
+Users now join rooms in chat-only mode and can progressively opt into audio and video/screen sharing.
+
+**Participant List**
+- Room displays a live participant list showing everyone currently in the room
+- Each participant has a colored dot indicating their media state: grey (chat), green (audio), blue (video/screen)
+- Updates in real-time as users join, leave, or change media state
+
+**Tiered Media Controls**
+- **Chat-only** (default): users enter the room with text chat only — "Join Audio" button is shown
+- **Audio**: clicking "Join Audio" opens the microphone and establishes a WebRTC peer connection — "Start Camera", "Share Screen", and "Leave Audio" buttons appear
+- **Video/Screen**: clicking "Start Camera" or "Share Screen" adds a video track to the existing audio connection — "Stop Video" and "Leave Audio" buttons appear
+- "Leave Audio" tears down the peer connection and reverts to chat-only
+- "Stop Video" removes video but keeps audio running
+
+**Server**
+- New `rooms` Map tracks room membership and per-user media state
+- New Socket.IO events: `join-audio`, `start-video`, `start-screen`, `stop-media`, `leave-audio`
+- `room-participants` and `participant-updated` events keep all clients in sync
+- 2-person room limit enforced on join
+
+**WebRTC Refactor**
+- Peer connection creation decoupled from offer — new `ensurePeerConnection()` helper
+- `negotiationneeded` event handler for automatic renegotiation when tracks are added/removed
+- ICE candidate buffering for candidates arriving before remote description is set
+- New `addVideoTrack()`, `removeVideoTracks()`, `closePeerConnection()` exports
+
+---
+
 ## v0.5.2 — 2026-03-25
 
 - Expanded Electron build documentation in README with platform-specific targets, cross-compilation commands, and output paths
