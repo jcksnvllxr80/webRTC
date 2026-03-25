@@ -1,26 +1,34 @@
 # Release Notes
 
+## v0.6.1 — 2026-03-25
+
+### Independent Media Controls
+
+- Audio, video, and screen share are now fully independent — no need to join audio before sharing video or screen
+- Each can be started and stopped independently in any order
+- Peer connection is created on demand when any media is started, and torn down when all media is stopped
+
+---
+
 ## v0.6.0 — 2026-03-25
 
-### Participant List & Tiered Media Joining
+### Participant List & Media Joining
 
-Users now join rooms in chat-only mode and can progressively opt into audio and video/screen sharing.
+Users now join rooms in chat-only mode and can independently opt into audio, video, and screen sharing.
 
 **Participant List**
 - Room displays a live participant list showing everyone currently in the room
 - Each participant has a colored dot indicating their media state: grey (chat), green (audio), blue (video/screen)
 - Updates in real-time as users join, leave, or change media state
 
-**Tiered Media Controls**
-- **Chat-only** (default): users enter the room with text chat only — "Join Audio" button is shown
-- **Audio**: clicking "Join Audio" opens the microphone and establishes a WebRTC peer connection — "Start Camera", "Share Screen", and "Leave Audio" buttons appear
-- **Video/Screen**: clicking "Start Camera" or "Share Screen" adds a video track to the existing audio connection — "Stop Video" and "Leave Audio" buttons appear
-- "Leave Audio" tears down the peer connection and reverts to chat-only
-- "Stop Video" removes video but keeps audio running
+**Media Controls**
+- **Chat-only** (default): users enter the room with text chat — "Join Audio", "Start Camera", and "Share Screen" are all available
+- Audio, video, and screen share are independent — start any combination
+- "Leave Audio" stops the mic; "Stop Video" stops the camera/screen; peer connection closes when all media is stopped
 
 **Server**
-- New `rooms` Map tracks room membership and per-user media state
-- New Socket.IO events: `join-audio`, `start-video`, `start-screen`, `stop-media`, `leave-audio`
+- New `rooms` Map tracks room membership and per-user media state (`{ audio, video, screen }` booleans)
+- `media-state-change` event for clients to broadcast their current media flags
 - `room-participants` and `participant-updated` events keep all clients in sync
 - 2-person room limit enforced on join
 

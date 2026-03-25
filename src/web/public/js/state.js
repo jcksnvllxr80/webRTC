@@ -9,8 +9,8 @@ export const state = {
     localStream: null,
     remoteStream: null,
     roomId: getRoomIdFromUrl(),
-    mediaState: 'chat',       // 'chat' | 'audio' | 'video' | 'screen'
-    participants: new Map(),   // socketId -> { username, mediaState }
+    media: { audio: false, video: false, screen: false },
+    participants: new Map(),   // socketId -> { username, media }
     audioStream: null          // mic-only stream (separate from localStream which holds video)
 };
 

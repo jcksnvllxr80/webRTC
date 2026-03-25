@@ -1,5 +1,5 @@
 import { state, socket } from './state.js';
-import { createOffer, addVideoTrack, removeVideoTracks, closePeerConnection } from './webrtc.js';
+import { ensurePeerConnection, addVideoTrack, removeVideoTracks, closePeerConnection } from './webrtc.js';
 import { updateControlsForMediaState } from './room.js';
 
 function formatMediaError(prefix, error) {
@@ -39,7 +39,16 @@ export function getVideoConstraints() {
     return { width: { ideal: w }, height: { ideal: h } };
 }
 
-// Join audio channel — mic only, establishes WebRTC peer connection
+function broadcastMediaState() {
+    socket.emit('media-state-change', state.roomId, state.media);
+    updateControlsForMediaState();
+}
+
+function hasAnyMedia() {
+    return state.media.audio || state.media.video || state.media.screen;
+}
+
+// Join audio — mic only
 export async function initAudio() {
     try {
         state.audioStream = await navigator.mediaDevices.getUserMedia({
@@ -47,24 +56,53 @@ export async function initAudio() {
             video: false
         });
 
-        state.mediaState = 'audio';
-        socket.emit('join-audio', state.roomId);
-        updateControlsForMediaState();
+        ensurePeerConnection();
+        state.audioStream.getTracks().forEach(track => {
+            state.peerConnection.addTrack(track, state.audioStream);
+        });
 
-        await createOffer();
+        state.media.audio = true;
+        broadcastMediaState();
     } catch (error) {
         console.error('Error accessing microphone:', error);
         alert(formatMediaError('Could not access microphone', error));
     }
 }
 
-// Start camera — adds video track to existing audio connection
+// Leave audio — stop mic, remove audio tracks from peer connection
+export function leaveAudio() {
+    if (state.audioStream) {
+        state.audioStream.getTracks().forEach(track => track.stop());
+        // Remove audio senders from peer connection
+        if (state.peerConnection) {
+            const senders = state.peerConnection.getSenders();
+            for (const sender of senders) {
+                if (sender.track && sender.track.kind === 'audio') {
+                    state.peerConnection.removeTrack(sender);
+                }
+            }
+        }
+        state.audioStream = null;
+    }
+
+    state.media.audio = false;
+    broadcastMediaState();
+
+    // If nothing else is active, tear down the peer connection
+    if (!hasAnyMedia()) {
+        closePeerConnection();
+        socket.emit('user-stopped-stream', state.roomId, socket.id);
+    }
+}
+
+// Start camera — video only, independent of audio
 export async function initCamera() {
     try {
-        // Stop any existing video
+        // Stop any existing video/screen
         if (state.localStream) {
             state.localStream.getTracks().forEach(t => t.stop());
             removeVideoTracks();
+            state.media.screen = false;
         }
 
         state.localStream = await navigator.mediaDevices.getUserMedia({
@@ -74,28 +112,28 @@ export async function initCamera() {
 
         document.getElementById('user-1').srcObject = state.localStream;
 
-        // Add video track to peer connection
+        ensurePeerConnection();
         const videoTrack = state.localStream.getVideoTracks()[0];
         if (videoTrack) {
             addVideoTrack(videoTrack, state.localStream);
         }
 
-        state.mediaState = 'video';
-        socket.emit('start-video', state.roomId);
-        updateControlsForMediaState();
+        state.media.video = true;
+        broadcastMediaState();
     } catch (error) {
         console.error('Error accessing camera:', error);
         alert(formatMediaError('Could not access camera', error));
     }
 }
 
-// Share screen — adds screen track to existing audio connection
+// Share screen — independent of audio
 export async function shareScreen() {
     try {
-        // Stop any existing video
+        // Stop any existing video/screen
         if (state.localStream) {
             state.localStream.getTracks().forEach(t => t.stop());
             removeVideoTracks();
+            state.media.video = false;
         }
 
         if (isElectronDesktop()) {
@@ -115,7 +153,7 @@ export async function shareScreen() {
 
         document.getElementById('user-1').srcObject = state.localStream;
 
-        // Add video track to peer connection
+        ensurePeerConnection();
         const videoTrack = state.localStream.getVideoTracks()[0];
         if (videoTrack) {
             addVideoTrack(videoTrack, state.localStream);
@@ -125,57 +163,35 @@ export async function shareScreen() {
             });
         }
 
-        state.mediaState = 'screen';
-        socket.emit('start-screen', state.roomId);
-        updateControlsForMediaState();
+        state.media.screen = true;
+        broadcastMediaState();
     } catch (error) {
         console.error('Error sharing screen:', error);
         alert(formatMediaError('Could not share screen', error));
     }
 }
 
-// Stop video/screen only — keeps audio running
+// Stop video/screen only — keeps audio if active
 export function stopVideo() {
     if (state.localStream) {
         state.localStream.getTracks().forEach(track => track.stop());
         document.getElementById('user-1').srcObject = null;
         state.localStream = null;
         removeVideoTracks();
+    }
 
+    state.media.video = false;
+    state.media.screen = false;
+    broadcastMediaState();
+
+    if (!hasAnyMedia()) {
+        closePeerConnection();
         socket.emit('user-stopped-stream', state.roomId, socket.id);
     }
-
-    state.mediaState = 'audio';
-    socket.emit('stop-media', state.roomId);
-    updateControlsForMediaState();
 }
 
-// Leave audio channel — closes everything, reverts to chat-only
-export function leaveAudio() {
-    // Stop video
-    if (state.localStream) {
-        state.localStream.getTracks().forEach(track => track.stop());
-        document.getElementById('user-1').srcObject = null;
-        state.localStream = null;
-    }
-
-    // Stop audio
-    if (state.audioStream) {
-        state.audioStream.getTracks().forEach(track => track.stop());
-        state.audioStream = null;
-    }
-
-    closePeerConnection();
-
-    socket.emit('user-stopped-stream', state.roomId, socket.id);
-
-    state.mediaState = 'chat';
-    socket.emit('leave-audio', state.roomId);
-    updateControlsForMediaState();
-}
-
-// Legacy stop — used by external callers
+// Legacy — stop everything
 export function stopCamera() {
-    if (state.mediaState === 'chat') return;
+    stopVideo();
     leaveAudio();
 }

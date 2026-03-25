@@ -1,4 +1,4 @@
-import { initCamera, shareScreen, stopCamera, initAudio, leaveAudio, stopVideo } from './media.js';
+import { initCamera, shareScreen, initAudio, leaveAudio, stopVideo } from './media.js';
 import { setupSignalingListeners } from './webrtc.js';
 import { setupChatListeners } from './chat.js';
 import { setupUIListeners } from './ui.js';
@@ -19,9 +19,7 @@ if (isInRoom()) {
         btn.textContent = 'Joining...';
         try {
             await initAudio();
-        } catch {
-            // initAudio handles its own errors
-        }
+        } catch { /* handled in initAudio */ }
         btn.textContent = 'Join Audio';
         btn.disabled = false;
     });
@@ -38,9 +36,7 @@ if (isInRoom()) {
         startCameraBtn.textContent = 'Starting...';
         try {
             await initCamera();
-        } catch {
-            // initCamera handles its own errors
-        }
+        } catch { /* handled in initCamera */ }
         startCameraBtn.textContent = 'Start Camera';
         startCameraBtn.disabled = false;
     });
@@ -52,9 +48,7 @@ if (isInRoom()) {
         shareScreenBtn.textContent = 'Sharing...';
         try {
             await shareScreen();
-        } catch {
-            // shareScreen handles its own errors
-        }
+        } catch { /* handled in shareScreen */ }
         shareScreenBtn.textContent = 'Share Screen';
         shareScreenBtn.disabled = false;
     });
@@ -62,11 +56,6 @@ if (isInRoom()) {
     // Stop Video
     document.getElementById('stop-video-btn').addEventListener('click', () => {
         stopVideo();
-    });
-
-    // Legacy stop camera (hidden but still wired)
-    document.getElementById('stop-camera').addEventListener('click', () => {
-        stopCamera();
     });
 
     setupSignalingListeners();

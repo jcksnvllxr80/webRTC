@@ -12,8 +12,14 @@ export function renderParticipants() {
     for (const [, data] of state.participants) {
         const li = document.createElement('li');
 
+        // Pick dot class based on highest active media
+        const m = data.media || {};
+        let dotClass = 'state-chat';
+        if (m.video || m.screen) dotClass = 'state-video';
+        else if (m.audio) dotClass = 'state-audio';
+
         const dot = document.createElement('span');
-        dot.className = `media-state-dot state-${data.mediaState}`;
+        dot.className = `media-state-dot ${dotClass}`;
 
         const name = document.createElement('span');
         name.textContent = data.username;
@@ -30,35 +36,20 @@ export function updateControlsForMediaState() {
     const startCamera = document.getElementById('start-camera');
     const shareScreen = document.getElementById('share-screen');
     const stopVideo = document.getElementById('stop-video-btn');
-    const stopCamera = document.getElementById('stop-camera');
     const resSelect = document.getElementById('resolution-select');
 
-    // Hide all first
-    joinAudio.style.display = 'none';
-    leaveAudio.style.display = 'none';
-    startCamera.style.display = 'none';
-    shareScreen.style.display = 'none';
-    stopVideo.style.display = 'none';
-    stopCamera.style.display = 'none';
-    resSelect.style.display = 'none';
+    const { audio, video, screen } = state.media;
+    const hasVideo = video || screen;
 
-    switch (state.mediaState) {
-        case 'chat':
-            joinAudio.style.display = '';
-            break;
-        case 'audio':
-            leaveAudio.style.display = '';
-            startCamera.style.display = '';
-            shareScreen.style.display = '';
-            resSelect.style.display = '';
-            break;
-        case 'video':
-        case 'screen':
-            leaveAudio.style.display = '';
-            stopVideo.style.display = '';
-            resSelect.style.display = '';
-            break;
-    }
+    // Audio: toggle join/leave
+    joinAudio.style.display = audio ? 'none' : '';
+    leaveAudio.style.display = audio ? '' : 'none';
+
+    // Video/Screen: toggle start/stop
+    startCamera.style.display = hasVideo ? 'none' : '';
+    shareScreen.style.display = hasVideo ? 'none' : '';
+    stopVideo.style.display = hasVideo ? '' : 'none';
+    resSelect.style.display = '';
 }
 
 export function setupRoomUI() {

@@ -224,7 +224,7 @@ io.on('connection', (socket) => {
         if (!rooms.has(roomId)) {
             rooms.set(roomId, new Map());
         }
-        rooms.get(roomId).set(socket.id, { username, mediaState: 'chat' });
+        rooms.get(roomId).set(socket.id, { username, media: { audio: false, video: false, screen: false } });
 
         // Send full participant list to everyone in the room
         const participants = Object.fromEntries(rooms.get(roomId));
@@ -234,39 +234,17 @@ io.on('connection', (socket) => {
         socket.to(roomId).emit('user-connected', userId, username);
     });
 
-    socket.on('join-audio', (roomId) => {
+    // Generic media-state-change: client sends { audio, video, screen } booleans
+    socket.on('media-state-change', (roomId, media) => {
         const room = rooms.get(roomId);
         if (!room || !room.has(socket.id)) return;
-        room.get(socket.id).mediaState = 'audio';
-        io.in(roomId).emit('participant-updated', socket.id, room.get(socket.id));
-    });
-
-    socket.on('start-video', (roomId) => {
-        const room = rooms.get(roomId);
-        if (!room || !room.has(socket.id)) return;
-        room.get(socket.id).mediaState = 'video';
-        io.in(roomId).emit('participant-updated', socket.id, room.get(socket.id));
-    });
-
-    socket.on('start-screen', (roomId) => {
-        const room = rooms.get(roomId);
-        if (!room || !room.has(socket.id)) return;
-        room.get(socket.id).mediaState = 'screen';
-        io.in(roomId).emit('participant-updated', socket.id, room.get(socket.id));
-    });
-
-    socket.on('stop-media', (roomId) => {
-        const room = rooms.get(roomId);
-        if (!room || !room.has(socket.id)) return;
-        room.get(socket.id).mediaState = 'audio';
-        io.in(roomId).emit('participant-updated', socket.id, room.get(socket.id));
-    });
-
-    socket.on('leave-audio', (roomId) => {
-        const room = rooms.get(roomId);
-        if (!room || !room.has(socket.id)) return;
-        room.get(socket.id).mediaState = 'chat';
-        io.in(roomId).emit('participant-updated', socket.id, room.get(socket.id));
+        const participant = room.get(socket.id);
+        participant.media = {
+            audio: !!media.audio,
+            video: !!media.video,
+            screen: !!media.screen
+        };
+        io.in(roomId).emit('participant-updated', socket.id, participant);
     });
 
     socket.on('offer', (offer, roomId) => {

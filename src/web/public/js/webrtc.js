@@ -105,15 +105,14 @@ export function closePeerConnection() {
 export function setupSignalingListeners() {
     socket.on('user-connected', (userId, username) => {
         console.log('User connected:', userId, username);
-        // Only auto-offer if we're in audio+ state
-        if (state.mediaState !== 'chat') {
+        // Only auto-offer if we have any active media
+        const { audio, video, screen } = state.media;
+        if (audio || video || screen) {
             createOffer();
         }
     });
 
     socket.on('offer', async (offer) => {
-        // Only respond to offers if we're in audio+ state
-        if (state.mediaState === 'chat') return;
         await createAnswer(offer);
     });
 
