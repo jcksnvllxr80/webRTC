@@ -7,7 +7,26 @@ let connectionWindow = null;
 let displayPickerWindow = null;
 
 function createMenu() {
-    const template = [
+    const template = [];
+
+    if (process.platform === 'darwin') {
+        template.push({
+            label: app.name,
+            submenu: [
+                { role: 'about' },
+                { type: 'separator' },
+                { role: 'services' },
+                { type: 'separator' },
+                { role: 'hide' },
+                { role: 'hideOthers' },
+                { role: 'unhide' },
+                { type: 'separator' },
+                { role: 'quit' }
+            ]
+        });
+    }
+
+    template.push(
         {
             label: 'Connection',
             submenu: [
@@ -16,8 +35,21 @@ function createMenu() {
                     click: () => createConnectionWindow()
                 }
             ]
+        },
+        {
+            label: 'Edit',
+            submenu: [
+                { role: 'undo' },
+                { role: 'redo' },
+                { type: 'separator' },
+                { role: 'cut' },
+                { role: 'copy' },
+                { role: 'paste' },
+                { role: 'selectAll' }
+            ]
         }
-    ];
+    );
+
     Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
@@ -54,7 +86,12 @@ function createMainWindow() {
         show: false
     });
 
-    createMenu();
+    mainWindow.webContents.on('enter-html-full-screen', () => {
+        mainWindow.setFullScreen(true);
+    });
+    mainWindow.webContents.on('leave-html-full-screen', () => {
+        mainWindow.setFullScreen(false);
+    });
 }
 
 async function pickDisplaySource() {
@@ -151,19 +188,14 @@ async function pickDisplaySource() {
 app.commandLine.appendSwitch('ignore-certificate-errors');
 
 function configureDesktopPermissions() {
+    const allowedPermissions = new Set(['media', 'display-capture', 'fullscreen', 'clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']);
+
     session.defaultSession.setPermissionCheckHandler((_webContents, permission) => {
-        if (permission === 'media' || permission === 'display-capture') {
-            return true;
-        }
-        return false;
+        return allowedPermissions.has(permission);
     });
 
     session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
-        if (permission === 'media' || permission === 'display-capture') {
-            callback(true);
-            return;
-        }
-        callback(false);
+        callback(allowedPermissions.has(permission));
     });
 }
 
@@ -214,17 +246,11 @@ ipcMain.handle('pick-display-source', async () => {
 
 app.whenReady().then(() => {
     configureDesktopPermissions();
+    createMenu();
     createConnectionWindow();
 
-    app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) {
-            createConnectionWindow();
-        }
-    });
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
+    app.quit();
 });
