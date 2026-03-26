@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.8.6 — 2026-03-26
+
+### Fix: UI polish and scrolling edge cases
+
+- Edit/delete buttons now use SVG icons that inherit theme color; delete turns red on hover
+- Themed scrollbars across the app (dark track, muted thumb, accent on hover)
+- Main call area now scrolls when large images push the bottom panel out of view
+- Fixed `#call-ui` being shown as `display:block` instead of `display:flex`, which broke the entire scroll constraint chain
+
+---
+
 ## v0.8.5 — 2026-03-26
 
 ### Fix: layout, scrolling, and edit UX
