@@ -1,4 +1,3 @@
 {
-  "port": 8001,
-  "giphyApiKey": "REPLACE_WITH_YOUR_GIPHY_KEY"
+  "port": 8001
 }

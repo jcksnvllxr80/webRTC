@@ -214,12 +214,100 @@ function applyReactions(msgId, reactions) {
     }
 }
 
+// ── Message controls (edit / delete) ──
+function buildControls(id, canEdit) {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg-controls';
+
+    if (canEdit) {
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'msg-ctrl-btn';
+        editBtn.title = 'Edit';
+        editBtn.textContent = '✏️';
+        editBtn.addEventListener('click', () => startEdit(id));
+        wrap.appendChild(editBtn);
+    }
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'msg-ctrl-btn msg-ctrl-delete';
+    delBtn.title = 'Delete';
+    delBtn.textContent = '🗑';
+    delBtn.addEventListener('click', () => {
+        socket.emit('delete-message', { roomId: state.roomId, msgId: id });
+    });
+    wrap.appendChild(delBtn);
+    return wrap;
+}
+
+function startEdit(msgId) {
+    const msg = document.querySelector(`.msg[data-msg-id="${CSS.escape(msgId)}"]`);
+    if (!msg) return;
+    const body = msg.querySelector('.msg-body');
+    if (!body || msg.classList.contains('editing')) return;
+    msg.classList.add('editing');
+
+    const originalHtml = body.innerHTML;
+    const plainText = body.innerText.trim();
+
+    body.innerHTML = '';
+
+    const ta = document.createElement('textarea');
+    ta.className = 'msg-edit-input';
+    ta.value = plainText;
+    ta.rows = Math.max(1, (plainText.match(/\n/g) || []).length + 1);
+
+    const actions = document.createElement('div');
+    actions.className = 'msg-edit-actions';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'msg-edit-save';
+    saveBtn.textContent = 'Save';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'msg-edit-cancel';
+    cancelBtn.textContent = 'Cancel';
+
+    actions.appendChild(saveBtn);
+    actions.appendChild(cancelBtn);
+    body.appendChild(ta);
+    body.appendChild(actions);
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+
+    function save() {
+        const newText = ta.value.trim();
+        if (newText && newText !== plainText) {
+            socket.emit('edit-message', { roomId: state.roomId, msgId, text: newText });
+        } else {
+            cancel();
+        }
+    }
+
+    function cancel() {
+        msg.classList.remove('editing');
+        body.innerHTML = originalHtml;
+        highlightCodeBlocks(msg);
+    }
+
+    saveBtn.addEventListener('click', save);
+    cancelBtn.addEventListener('click', cancel);
+    ta.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); }
+        if (e.key === 'Escape') cancel();
+    });
+}
+
 // ── Message rendering ──
 function addMessageToChat(username, html, text, msgId) {
     const messagesDiv = document.getElementById('messages');
     messagesDiv.querySelector('.chat-empty')?.remove();
 
     const id = msgId || genMsgId();
+    const isOwn = username === currentUsername;
     const msg = document.createElement('div');
     msg.className = 'msg';
     msg.dataset.msgId = id;
@@ -232,6 +320,8 @@ function addMessageToChat(username, html, text, msgId) {
             `<span class="msg-time">${nowTime()}</span>` +
         `</div>` +
         `<div class="msg-body">${body}</div>`;
+
+    if (isOwn) msg.querySelector('.msg-header').appendChild(buildControls(id, true));
 
     const bar = document.createElement('div');
     bar.className = 'msg-reactions';
@@ -248,6 +338,7 @@ function addFileToChat(username, { filename, mimeType, data, size, msgId }) {
     messagesDiv.querySelector('.chat-empty')?.remove();
 
     const id = msgId || genMsgId();
+    const isOwn = username === currentUsername;
     const msg = document.createElement('div');
     msg.className = 'msg';
     msg.dataset.msgId = id;
@@ -262,6 +353,7 @@ function addFileToChat(username, { filename, mimeType, data, size, msgId }) {
     timeEl.textContent = nowTime();
     header.appendChild(userEl);
     header.appendChild(timeEl);
+    if (isOwn) header.appendChild(buildControls(id, false));
 
     const card = document.createElement('div');
     card.className = 'file-card';
@@ -358,5 +450,19 @@ export function setupChatListeners() {
 
     socket.on('message-reaction', ({ msgId, reactions }) => {
         applyReactions(msgId, reactions);
+    });
+
+    socket.on('message-edited', ({ msgId, html }) => {
+        const msg = document.querySelector(`.msg[data-msg-id="${CSS.escape(msgId)}"]`);
+        if (!msg) return;
+        msg.classList.remove('editing');
+        const body = msg.querySelector('.msg-body');
+        if (!body) return;
+        body.innerHTML = sanitizeHtml(html) + '<span class="msg-edited">(edited)</span>';
+        highlightCodeBlocks(msg);
+    });
+
+    socket.on('message-deleted', ({ msgId }) => {
+        document.querySelector(`.msg[data-msg-id="${CSS.escape(msgId)}"]`)?.remove();
     });
 }

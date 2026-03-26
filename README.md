@@ -128,15 +128,9 @@ Click 😀 to open the emoji picker, or type `:shortcode:` (e.g. `:wave:`) direc
 
 ### GIF support
 
-GIF search requires a [GIPHY API](https://developers.giphy.com) key. New keys are available free at developers.giphy.com (beta tier: 100 requests/hour). Add your key to `config/server.json`:
+GIF search requires a [GIPHY API](https://developers.giphy.com) key (free, 100 req/hr beta tier). Add it to `config/secrets.json` — see the [Secrets](#secrets) section below.
 
-```json
-{
-  "giphyApiKey": "YOUR_KEY_HERE"
-}
-```
 
-> **Note:** Tenor is no longer accepting new API registrations (closed January 2026) and existing keys will stop working June 30, 2026.
 
 ### File and image attachments
 
@@ -211,6 +205,22 @@ npx electron-builder --linux
 ```
 
 **Note:** The build dependencies (`electron`, `electron-builder`) account for the majority of `npm audit` warnings. These are build-time only and do not affect the running server or browser clients. You can verify with `npm audit --omit=dev`.
+
+## Secrets
+
+API keys and other credentials go in `config/secrets.json`. This file is gitignored and never committed. The server merges it over `config/server.json` at startup.
+
+Create the file if it doesn't exist:
+
+```json
+{
+  "giphyApiKey": "YOUR_GIPHY_KEY_HERE"
+}
+```
+
+| Key | Where to get it |
+|-----|----------------|
+| `giphyApiKey` | [developers.giphy.com](https://developers.giphy.com) — free beta tier, 100 req/hr |
 
 ## Notes
 

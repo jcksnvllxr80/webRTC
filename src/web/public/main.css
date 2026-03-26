@@ -748,6 +748,76 @@ body.enlarged #user-2{
     margin-bottom: 2px;
 }
 
+/* Edit / delete controls — appear on hover */
+.msg-controls{
+    display: none;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+}
+.msg:hover .msg-controls{ display: flex; }
+.msg-ctrl-btn{
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    opacity: 0.5;
+    transition: opacity var(--dur-micro) ease, background var(--dur-micro) ease;
+    line-height: 1;
+}
+.msg-ctrl-btn:hover{ opacity: 1; background: var(--c-elevated); }
+.msg-ctrl-delete:hover{ background: rgba(244,67,71,0.15); }
+
+/* Inline edit */
+.msg-edit-input{
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--c-base);
+    border: 1px solid var(--c-accent);
+    border-radius: var(--r-sm);
+    color: var(--c-text);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    padding: 4px var(--sp-sm);
+    resize: none;
+    outline: none;
+}
+.msg-edit-actions{
+    display: flex;
+    gap: var(--sp-xs);
+    margin-top: 4px;
+}
+.msg-edit-save, .msg-edit-cancel{
+    font-size: var(--text-xs);
+    padding: 2px var(--sp-sm);
+    border-radius: var(--r-sm);
+    border: 1px solid var(--c-border);
+    cursor: pointer;
+    transition: background var(--dur-micro) ease;
+    font-family: var(--font-sans);
+}
+.msg-edit-save{
+    background: var(--c-accent);
+    color: #000;
+    border-color: var(--c-accent);
+    font-weight: 600;
+}
+.msg-edit-save:hover{ background: var(--c-accent-hover, #98e626); }
+.msg-edit-cancel{
+    background: none;
+    color: var(--c-text-muted);
+}
+.msg-edit-cancel:hover{ background: var(--c-elevated); color: var(--c-text); }
+.msg-edited{
+    font-size: var(--text-xs);
+    color: var(--c-text-muted);
+    margin-left: 4px;
+    font-style: italic;
+}
+
 .msg-user{
     font-weight: 600;
     color: var(--c-accent);

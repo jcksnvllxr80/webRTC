@@ -20,6 +20,9 @@ const options = {
 const server = https.createServer(options, app);
 const io = require('socket.io')(server);
 const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+// Merge secrets.json if present (gitignored — put real API keys there)
+const SECRETS_PATH = path.join(ROOT_DIR, 'config', 'secrets.json');
+if (fs.existsSync(SECRETS_PATH)) Object.assign(config, JSON.parse(fs.readFileSync(SECRETS_PATH, 'utf8')));
 const PORT = process.env.PORT || config.port || 3000;
 // Create the session middleware
 const sessionMiddleware = session({
@@ -161,8 +164,8 @@ app.get('/api/me', (req, res) => {
 
 // ── GIPHY proxy endpoints (key stays server-side) ──
 async function fetchGiphy(path) {
-    const key = config.giphyApiKey;
-    if (!key) return { error: 'not_configured' };
+    const key = process.env.GIPHY_API_KEY || config.giphyApiKey;
+    if (!key || key.startsWith('REPLACE_')) return { error: 'not_configured' };
     const res = await fetch(`https://api.giphy.com/v1/gifs/${path}&api_key=${key}&rating=g&limit=24`);
     if (!res.ok) throw new Error(`GIPHY ${res.status}`);
     const { data } = await res.json();
@@ -223,7 +226,8 @@ const onlineUsers = new Map();
 
 // Track room membership: roomId -> Map<socketId, { username, mediaState }>
 const rooms = new Map();
-const messageReactions = new Map(); // roomId → Map<msgId, Set<username>>
+const messageReactions = new Map(); // roomId → Map<msgId, Map<emoji, Set<username>>>
+const messageOwners    = new Map(); // roomId → Map<msgId, username>
 
 // API endpoint for online status
 app.get('/api/online', (req, res) => {
@@ -305,6 +309,7 @@ io.on('connection', (socket) => {
             if (rooms.get(roomId).size === 0) {
                 rooms.delete(roomId);
                 messageReactions.delete(roomId);
+                messageOwners.delete(roomId);
             } else {
                 const participants = Object.fromEntries(rooms.get(roomId));
                 io.in(roomId).emit('room-participants', participants);
@@ -324,11 +329,16 @@ io.on('connection', (socket) => {
     socket.on('chat-message', (data) => {
         const username = socket.request.session.username;
         if (!data.roomId) return;
+        const msgId = data.msgId ? String(data.msgId).slice(0, 64) : null;
+        if (msgId) {
+            if (!messageOwners.has(data.roomId)) messageOwners.set(data.roomId, new Map());
+            messageOwners.get(data.roomId).set(msgId, username);
+        }
         io.in(data.roomId).emit('chat-message', {
             username,
             message: data.message ? String(data.message).slice(0, 4096) : '',
             html:    data.html    ? String(data.html).slice(0, 65536)    : null,
-            msgId:   data.msgId   ? String(data.msgId).slice(0, 64)      : null,
+            msgId,
         });
     });
 
@@ -338,14 +348,43 @@ io.on('connection', (socket) => {
         if (!data.roomId) return;
         const dataStr = data.data ? String(data.data) : '';
         if (dataStr.length > 7 * 1024 * 1024) return; // reject oversized payloads
+        const msgId = data.msgId ? String(data.msgId).slice(0, 64) : null;
+        if (msgId) {
+            if (!messageOwners.has(data.roomId)) messageOwners.set(data.roomId, new Map());
+            messageOwners.get(data.roomId).set(msgId, username);
+        }
         io.in(data.roomId).emit('file-message', {
             username,
             filename: String(data.filename  || 'file').slice(0, 255),
             mimeType: String(data.mimeType  || 'application/octet-stream').slice(0, 100),
             data: dataStr,
             size: Number(data.size) || 0,
-            msgId:   data.msgId ? String(data.msgId).slice(0, 64) : null,
+            msgId,
         });
+    });
+
+    // handler for message edits (own messages only)
+    socket.on('edit-message', (data) => {
+        const username = socket.request.session.username;
+        const { roomId, msgId } = data;
+        if (!roomId || !msgId) return;
+        const safeId = String(msgId).slice(0, 64);
+        if (messageOwners.get(roomId)?.get(safeId) !== username) return;
+        const text = String(data.text || '').slice(0, 4096);
+        const html = '<p>' + text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'</p><p>') + '</p>';
+        io.in(roomId).emit('message-edited', { msgId: safeId, text, html });
+    });
+
+    // handler for message deletes (own messages only)
+    socket.on('delete-message', (data) => {
+        const username = socket.request.session.username;
+        const { roomId, msgId } = data;
+        if (!roomId || !msgId) return;
+        const safeId = String(msgId).slice(0, 64);
+        if (messageOwners.get(roomId)?.get(safeId) !== username) return;
+        messageOwners.get(roomId).delete(safeId);
+        messageReactions.get(roomId)?.delete(safeId);
+        io.in(roomId).emit('message-deleted', { msgId: safeId });
     });
 
     // handler for message reactions (any emoji, toggle per user)

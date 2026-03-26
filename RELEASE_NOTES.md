@@ -1,5 +1,21 @@
 # Release Notes
 
+## v0.8.3 — 2026-03-26
+
+### Edit & Delete Messages
+
+- Hover your own messages to reveal ✏️ edit and 🗑 delete buttons
+- Edit opens an inline textarea pre-filled with the message text; `Enter` saves, `Shift+Enter` newlines, `Esc` cancels
+- Edited messages are marked with `(edited)`
+- Delete removes the message from all participants' views immediately
+- Both actions are server-verified — the server rejects requests for messages you didn't send
+
+**Secrets config**
+- API keys no longer go in `config/server.json` — create `config/secrets.json` (gitignored) and put keys there
+- Server merges `secrets.json` over `server.json` at startup; `server.json` stays clean and committed
+
+---
+
 ## v0.8.2 — 2026-03-26
 
 ### Chat Enhancements: Reactions, GIF Search, Code Block Improvements
