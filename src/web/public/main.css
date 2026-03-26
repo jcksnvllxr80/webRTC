@@ -59,6 +59,18 @@
 /* ── Base ── */
 *{ box-sizing: border-box; }
 
+/* ── Scrollbar theme ── */
+::-webkit-scrollbar{ width: 6px; height: 6px; }
+::-webkit-scrollbar-track{ background: var(--c-base); }
+::-webkit-scrollbar-thumb{ background: var(--c-overlay); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover{ background: var(--c-text-muted); }
+* { scrollbar-width: thin; scrollbar-color: var(--c-overlay) var(--c-base); }
+
+html, body{
+    height: 100%;
+    overflow: hidden;
+}
+
 body{
     max-width: 1200px;
     width: 100%;
@@ -69,6 +81,8 @@ body{
     background: var(--c-surface);
     color: var(--c-text);
     -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
 }
 
 /* ── Header ── */
@@ -120,6 +134,15 @@ body{
 /* ── Lobby ── */
 #lobby{
     padding: var(--sp-2xl) var(--sp-md);
+    overflow-y: auto;
+}
+
+#call-ui{
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .lobby-hero{
@@ -686,28 +709,34 @@ body.enlarged #user-2{
 
 /* ── Bottom panel: friends + chat side by side ── */
 #bottom-panel{
-    display: grid;
-    grid-template-columns: 220px 1fr;
+    display: flex;
+    flex-direction: row;
     gap: var(--sp-md);
     padding: var(--sp-md);
     border-top: 1px solid var(--c-border);
     margin-top: var(--sp-xs);
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 #call-friends{
+    width: 220px;
+    flex-shrink: 0;
     overflow-y: auto;
-    max-height: 300px;
 }
 
 /* ── Chat ── */
 #chat-container{
+    flex: 1;
     display: flex;
     flex-direction: column;
+    min-height: 0;
 }
 
 #messages{
     flex: 1;
-    height: 250px;
+    min-height: 0;
     border: 1px solid var(--c-border);
     border-radius: var(--r-md);
     overflow-y: auto;
@@ -764,11 +793,12 @@ body.enlarged #user-2{
     padding: 1px 4px;
     border-radius: 3px;
     opacity: 0.5;
-    transition: opacity var(--dur-micro) ease, background var(--dur-micro) ease;
+    color: var(--c-text);
+    transition: opacity var(--dur-micro) ease, background var(--dur-micro) ease, color var(--dur-micro) ease;
     line-height: 1;
 }
 .msg-ctrl-btn:hover{ opacity: 1; background: var(--c-elevated); }
-.msg-ctrl-delete:hover{ background: rgba(244,67,71,0.15); }
+.msg-ctrl-delete:hover{ background: rgba(244,67,71,0.15); color: #f44347; }
 
 /* Inline edit */
 .msg-edit-img-preview{

@@ -59,7 +59,7 @@ export function setupRoomUI() {
     if (isInRoom()) {
         // In a room — show call UI, hide lobby
         lobby.style.display = 'none';
-        callUI.style.display = 'block';
+        callUI.style.display = 'flex';
         document.getElementById('room-id-display').textContent = state.roomId;
         document.getElementById('room-link').value = window.location.href;
         updateControlsForMediaState();

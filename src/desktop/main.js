@@ -76,7 +76,7 @@ function createConnectionWindow() {
 function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
-        height: 800,
+        height: 960,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,

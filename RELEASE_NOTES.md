@@ -1,5 +1,17 @@
 # Release Notes
 
+## v0.8.5 — 2026-03-26
+
+### Fix: layout, scrolling, and edit UX
+
+- Page no longer scrolls; only the chat messages area scrolls
+- Fixed scrollbar not appearing in messages when content overflowed — root cause was CSS Grid blocking height propagation; bottom panel converted to flexbox
+- GIF/image preview shown above textarea when editing a message that contains one
+- `(edited)` marker no longer accumulates on repeated edits
+- Electron default window height increased to 960px
+
+---
+
 ## v0.8.4 — 2026-03-26
 
 ### Fix: GIFs preserved when editing messages

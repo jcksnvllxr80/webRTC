@@ -215,6 +215,9 @@ function applyReactions(msgId, reactions) {
 }
 
 // ── Message controls (edit / delete) ──
+const SVG_EDIT = `<svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61a.75.75 0 0 1-.34.19l-3.25.75a.75.75 0 0 1-.906-.906l.75-3.25a.75.75 0 0 1 .19-.34zm1.414 1.06a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.439 1.263-1.263a.25.25 0 0 0 0-.354zM11.19 5.25 9.75 3.811 3.44 10.121l-.245 1.062 1.062-.245z"/></svg>`;
+const SVG_TRASH = `<svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor"><path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75M4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15M6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25"/></svg>`;
+
 function buildControls(id, canEdit) {
     const wrap = document.createElement('div');
     wrap.className = 'msg-controls';
@@ -224,7 +227,7 @@ function buildControls(id, canEdit) {
         editBtn.type = 'button';
         editBtn.className = 'msg-ctrl-btn';
         editBtn.title = 'Edit';
-        editBtn.textContent = '✏️';
+        editBtn.innerHTML = SVG_EDIT;
         editBtn.addEventListener('click', () => startEdit(id));
         wrap.appendChild(editBtn);
     }
@@ -233,7 +236,7 @@ function buildControls(id, canEdit) {
     delBtn.type = 'button';
     delBtn.className = 'msg-ctrl-btn msg-ctrl-delete';
     delBtn.title = 'Delete';
-    delBtn.textContent = '🗑';
+    delBtn.innerHTML = SVG_TRASH;
     delBtn.addEventListener('click', () => {
         socket.emit('delete-message', { roomId: state.roomId, msgId: id });
     });
@@ -249,7 +252,10 @@ function startEdit(msgId) {
     msg.classList.add('editing');
 
     const originalHtml = body.innerHTML;
-    const plainText = body.innerText.trim();
+    // Clone so we can strip the "(edited)" marker without touching the live DOM
+    const bodyClone = body.cloneNode(true);
+    bodyClone.querySelector('.msg-edited')?.remove();
+    const plainText = bodyClone.innerText.trim();
 
     // Capture any embedded images (GIFs, inline images) so we can re-attach after save
     const imageSrcs = Array.from(body.querySelectorAll('img')).map(img => img.src);
