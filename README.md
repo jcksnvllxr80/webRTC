@@ -128,13 +128,15 @@ Click 😀 to open the emoji picker, or type `:shortcode:` (e.g. `:wave:`) direc
 
 ### GIF support
 
-GIF search requires a [Tenor API v2](https://developers.google.com/tenor/guides/quickstart) key. Add it to `config/server.json`:
+GIF search requires a [GIPHY API](https://developers.giphy.com) key. New keys are available free at developers.giphy.com (beta tier: 100 requests/hour). Add your key to `config/server.json`:
 
 ```json
 {
-  "tenorApiKey": "YOUR_KEY_HERE"
+  "giphyApiKey": "YOUR_KEY_HERE"
 }
 ```
+
+> **Note:** Tenor is no longer accepting new API registrations (closed January 2026) and existing keys will stop working June 30, 2026.
 
 ### File and image attachments
 

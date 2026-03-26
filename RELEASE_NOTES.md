@@ -1,5 +1,32 @@
 # Release Notes
 
+## v0.8.2 — 2026-03-26
+
+### Chat Enhancements: Reactions, GIF Search, Code Block Improvements
+
+**Emoji reaction picker**
+- Hover any message to reveal a 😊 trigger button
+- Hovering it opens a pill-shaped popover with 8 quick reactions: 👍 ❤️ 😂 🔥 😮 😢 👎 🎉
+- The `···` button opens the full searchable emoji picker to choose any reaction
+- Reactions appear as pills below the message with a count; click a pill to toggle your reaction
+- Your own reactions are accent-highlighted; works on your own messages and others'
+- Reactions are tracked per-room in server memory, cleared when the room empties
+
+**GIF search**
+- GIF button opens a live search panel powered by GIPHY
+- Trending GIFs load on open; type to search with 400ms debounce
+- 3-column animated preview grid; click any GIF to insert it inline into the composer
+- API key proxied server-side — never exposed to the client
+- Config: set `"giphyApiKey"` in `config/server.json` (free key at developers.giphy.com)
+- Tenor replaced — closed new registrations January 2026, shutting down June 2026
+
+**Code block improvements**
+- `Enter` inside a code block adds a new line instead of submitting the message
+- Exit by pressing `Enter` on the last empty line; no line limit
+- Syntax highlighting persists in the message feed (re-applied after render)
+
+---
+
 ## v0.8.1 — 2026-03-26
 
 ### Message Likes & Syntax-Highlighted Code Blocks
@@ -40,7 +67,7 @@ Chat now supports full rich text authoring, file attachments, emoji, and inline 
 - `:shortcode:` autocomplete: type `:` followed by a name (e.g., `:wave`) to get an inline suggestion dropdown; **↑↓** to navigate, **Enter** to apply, **Esc** to dismiss
 
 **GIF**
-- GIF button is present; search requires a Tenor API key in `config/server.json → "tenorApiKey"`
+- GIF button is present; search requires a GIPHY API key in `config/server.json → "giphyApiKey"` (free key at developers.giphy.com — Tenor discontinued Jan 2026)
 
 **File & image attachments**
 - 📎 button opens a file picker; drag-and-drop and paste also work

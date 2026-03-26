@@ -163,7 +163,7 @@ Two entry points:
 
 ### GIF Search
 - Trigger: GIF button in action bar
-- API: Tenor v2 (free tier, no required branding attribution — unlike GIPHY free tier)
+- API: GIPHY (free beta key at developers.giphy.com — Tenor discontinued new registrations Jan 2026, keys expire Jun 2026)
 - Panel: same overlay bg + border + shadow as emoji panel
 - Layout: search input → masonry/grid of GIF previews
 - Clicking a GIF: closes panel, inserts GIF inline in the message being composed
@@ -192,7 +192,7 @@ Two entry points:
 ### Libraries
 - **Rich text engine:** [Tiptap](https://tiptap.dev) — ProseMirror-based, vanilla JS compatible, tree-shakable. Use `@tiptap/core` + individual extension packages.
 - **Emoji picker:** [emoji-picker-element](https://github.com/nolanlawson/emoji-picker-element) — web component, ~12KB, fully styleable via CSS custom properties and `::part()` selectors.
-- **GIF search:** Tenor API v2 — free tier, no forced GIPHY attribution branding required.
+- **GIF search:** GIPHY API — free beta tier (100 req/hr), get a key at developers.giphy.com. Config key: `giphyApiKey` in `config/server.json`.
 
 ---
 
@@ -202,4 +202,4 @@ Two entry points:
 | 2026-03-24 | Initial design system created | Created by /design-consultation — Retro-Futuristic/Industrial aesthetic chosen to match the personal hacker-tool identity. Geist font family for unified sans/mono pairing. Greenyellow accent preserved from existing codebase as signature color. |
 | 2026-03-24 | Dark mode as default | Product is a developer/hacker tool — dark mode is the natural default. Light mode supported but secondary. |
 | 2026-03-24 | Minimal decoration | Let the content (video streams, chat) dominate. UI should be invisible infrastructure, not decoration. |
-| 2026-03-26 | Rich text chat input spec added | Floating toolbar on selection (vs persistent toolbar) chosen to preserve the minimal, tool-like aesthetic. Tiptap over Quill — tree-shakable, actively maintained, better vanilla JS DX. emoji-picker-element over emoji-mart — web component with no React dep. Tenor over GIPHY — free tier without forced attribution branding. Action bar designed as first-class bottom edge of input container, not bolted on. |
+| 2026-03-26 | Rich text chat input spec added | Floating toolbar on selection (vs persistent toolbar) chosen to preserve the minimal, tool-like aesthetic. Tiptap over Quill — tree-shakable, actively maintained, better vanilla JS DX. emoji-picker-element over emoji-mart — web component with no React dep. GIPHY over Tenor — Tenor closed new registrations Jan 2026 and will shut down Jun 2026; GIPHY free beta tier is the practical replacement. Action bar designed as first-class bottom edge of input container, not bolted on. |

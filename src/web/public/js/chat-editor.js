@@ -33919,7 +33919,8 @@ function makeSubmitExtension(submitFn) {
     name: "submitOnEnter",
     addKeyboardShortcuts() {
       return {
-        Enter: () => {
+        Enter: ({ editor }) => {
+          if (editor.isActive("codeBlock")) return false;
           submitFn();
           return true;
         }
@@ -34256,11 +34257,75 @@ function createChatEditor({ editableEl, onSubmit }) {
     const panel = document.getElementById("rte-gif-panel");
     const btn = document.getElementById("rte-gif-btn");
     if (!panel || !btn) return;
+    panel.innerHTML = "";
+    panel.classList.remove("rte-gif-stub");
+    const searchRow = document.createElement("div");
+    searchRow.className = "gif-search-row";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "gif-search-input";
+    input.placeholder = "Search GIFs\u2026";
+    input.setAttribute("autocomplete", "off");
+    searchRow.appendChild(input);
+    const attribution = document.createElement("span");
+    attribution.className = "gif-attribution";
+    attribution.textContent = "Powered by GIPHY";
+    searchRow.appendChild(attribution);
+    const grid = document.createElement("div");
+    grid.className = "gif-grid";
+    panel.appendChild(searchRow);
+    panel.appendChild(grid);
+    let searchTimer = null;
+    let currentQuery = null;
+    async function loadGifs(query) {
+      if (query === currentQuery) return;
+      currentQuery = query;
+      grid.innerHTML = '<span class="gif-status">Loading\u2026</span>';
+      try {
+        const url = query ? `/api/gifs/search?q=${encodeURIComponent(query)}` : "/api/gifs/trending";
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.error) {
+          grid.innerHTML = `<span class="gif-status gif-error">${data.error}</span>`;
+          return;
+        }
+        if (!data.length) {
+          grid.innerHTML = '<span class="gif-status">No results</span>';
+          return;
+        }
+        grid.innerHTML = "";
+        for (const gif of data) {
+          const img = document.createElement("img");
+          img.src = gif.preview;
+          img.alt = gif.title;
+          img.className = "gif-item";
+          img.loading = "lazy";
+          img.title = gif.title;
+          img.addEventListener("click", () => {
+            editor.chain().focus().setImage({ src: gif.url, alt: gif.title }).run();
+            closeAllPanels();
+          });
+          grid.appendChild(img);
+        }
+      } catch {
+        grid.innerHTML = '<span class="gif-status gif-error">Failed to load GIFs</span>';
+      }
+    }
+    input.addEventListener("input", () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => loadGifs(input.value.trim()), 400);
+    });
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       const isOpen = panel.style.display !== "none";
       closeAllPanels();
-      if (!isOpen) panel.style.display = "block";
+      if (!isOpen) {
+        panel.style.display = "block";
+        currentQuery = null;
+        input.value = "";
+        loadGifs("");
+        setTimeout(() => input.focus(), 50);
+      }
     });
   }
   function closeAllPanels() {
@@ -34297,6 +34362,29 @@ function createChatEditor({ editableEl, onSubmit }) {
   setupSendButton();
   return { editor, submit };
 }
+function hastToHtml(nodes) {
+  return (nodes || []).map((n) => {
+    if (n.type === "text") {
+      return n.value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    if (n.type === "element") {
+      const cls = (n.properties?.className || []).join(" ");
+      return `<span class="${cls}">${hastToHtml(n.children)}</span>`;
+    }
+    return "";
+  }).join("");
+}
+function highlightCodeBlocks(containerEl) {
+  containerEl.querySelectorAll("pre > code").forEach((codeEl) => {
+    const lang = (codeEl.className.match(/language-(\S+)/) || [])[1];
+    if (!lang) return;
+    try {
+      const tree = lowlight.highlight(lang, codeEl.textContent);
+      codeEl.innerHTML = hastToHtml(tree.children);
+    } catch {
+    }
+  });
+}
 function sanitizeHtml(html2) {
   return purify.sanitize(html2, {
     ALLOWED_TAGS: [
@@ -34331,6 +34419,7 @@ function sanitizeHtml(html2) {
 }
 export {
   createChatEditor,
+  highlightCodeBlocks,
   sanitizeHtml
 };
 /*! Bundled license information:

@@ -159,6 +159,41 @@ app.get('/api/me', (req, res) => {
     res.json({ username: req.session.username });
 });
 
+// ── GIPHY proxy endpoints (key stays server-side) ──
+async function fetchGiphy(path) {
+    const key = config.giphyApiKey;
+    if (!key) return { error: 'not_configured' };
+    const res = await fetch(`https://api.giphy.com/v1/gifs/${path}&api_key=${key}&rating=g&limit=24`);
+    if (!res.ok) throw new Error(`GIPHY ${res.status}`);
+    const { data } = await res.json();
+    return data.map(g => ({
+        id:      g.id,
+        title:   g.title,
+        url:     g.images.fixed_height.url,
+        preview: g.images.preview_gif?.url || g.images.fixed_height_small?.url || g.images.fixed_height.url,
+        width:   Number(g.images.fixed_height.width),
+        height:  Number(g.images.fixed_height.height),
+    }));
+}
+
+app.get('/api/gifs/trending', requireAuth, async (req, res) => {
+    try {
+        const result = await fetchGiphy('trending?');
+        if (result.error) return res.status(503).json({ error: 'Add giphyApiKey to config/server.json' });
+        res.json(result);
+    } catch (e) { res.status(502).json({ error: e.message }); }
+});
+
+app.get('/api/gifs/search', requireAuth, async (req, res) => {
+    const q = String(req.query.q || '').trim().slice(0, 100);
+    if (!q) return res.redirect('/api/gifs/trending');
+    try {
+        const result = await fetchGiphy(`search?q=${encodeURIComponent(q)}&`);
+        if (result.error) return res.status(503).json({ error: 'Add giphyApiKey to config/server.json' });
+        res.json(result);
+    } catch (e) { res.status(502).json({ error: e.message }); }
+});
+
 // Rooms API
 app.post('/api/rooms', (req, res) => {
     const roomId = crypto.randomBytes(4).toString('hex');
@@ -313,27 +348,30 @@ io.on('connection', (socket) => {
         });
     });
 
-    // handler for message reactions (👍 toggle)
+    // handler for message reactions (any emoji, toggle per user)
     socket.on('react-message', (data) => {
         const username = socket.request.session.username;
         const { roomId, msgId, emoji } = data;
         if (!roomId || !msgId || !emoji) return;
-        const safeId = String(msgId).slice(0, 64);
+        const safeId    = String(msgId).slice(0, 64);
+        const safeEmoji = String(emoji).slice(0, 8);
 
         if (!messageReactions.has(roomId)) messageReactions.set(roomId, new Map());
         const roomRx = messageReactions.get(roomId);
-        if (!roomRx.has(safeId)) roomRx.set(safeId, new Set());
-        const likers = roomRx.get(safeId);
+        if (!roomRx.has(safeId)) roomRx.set(safeId, new Map());
+        const msgRx = roomRx.get(safeId);
+        if (!msgRx.has(safeEmoji)) msgRx.set(safeEmoji, new Set());
+        const users = msgRx.get(safeEmoji);
 
-        if (likers.has(username)) likers.delete(username);
-        else likers.add(username);
+        if (users.has(username)) users.delete(username);
+        else users.add(username);
+        if (users.size === 0) msgRx.delete(safeEmoji);
 
-        io.in(roomId).emit('message-reaction', {
-            msgId: safeId,
-            emoji,
-            count: likers.size,
-            likedBy: [...likers],
-        });
+        // Build reactions summary: { emoji: { count, users[] } }
+        const reactions = {};
+        for (const [e, u] of msgRx) reactions[e] = { count: u.size, users: [...u] };
+
+        io.in(roomId).emit('message-reaction', { msgId: safeId, reactions });
     });
 
     socket.on('user-stopped-stream', (roomId, userId) => {

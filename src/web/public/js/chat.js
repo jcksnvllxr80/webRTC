@@ -1,5 +1,5 @@
 import { state, socket } from './state.js';
-import { createChatEditor, sanitizeHtml } from './chat-editor.js';
+import { createChatEditor, sanitizeHtml, highlightCodeBlocks } from './chat-editor.js';
 
 let chatEditor = null;
 let currentUsername = null;
@@ -43,6 +43,177 @@ function getFileIcon(mimeType) {
     return '📄';
 }
 
+// ── Reaction picker (shared global instance) ──
+const QUICK_REACTIONS = ['👍','❤️','😂','🔥','😮','😢','👎','🎉'];
+let rxTargetMsgId = null;
+
+function setupReactionPicker() {
+    // Quick popover
+    const popover = document.createElement('div');
+    popover.id = 'rx-popover';
+    popover.className = 'rx-popover';
+    popover.style.display = 'none';
+
+    for (const emoji of QUICK_REACTIONS) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'rx-quick-btn';
+        btn.textContent = emoji;
+        btn.title = emoji;
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (rxTargetMsgId) socket.emit('react-message', { roomId: state.roomId, msgId: rxTargetMsgId, emoji });
+            closeRxPicker();
+        });
+        popover.appendChild(btn);
+    }
+
+    const moreBtn = document.createElement('button');
+    moreBtn.type = 'button';
+    moreBtn.className = 'rx-more-btn';
+    moreBtn.textContent = '···';
+    moreBtn.title = 'More reactions';
+    moreBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cancelClose();
+        popover.style.display = 'none';
+        openFullPicker();
+    });
+    popover.appendChild(moreBtn);
+
+    // Full emoji picker — appended directly to body (no wrapper div) so the
+    // picker's internal scroll/pointer-events are never clipped by a parent container.
+    const picker = document.createElement('emoji-picker');
+    picker.id = 'rx-full-picker';
+    picker.className = 'rx-full-picker';
+    picker.style.display = 'none';
+    picker.addEventListener('emoji-click', (e) => {
+        e.stopPropagation();
+        if (rxTargetMsgId) socket.emit('react-message', { roomId: state.roomId, msgId: rxTargetMsgId, emoji: e.detail.unicode });
+        closeRxPicker();
+    });
+
+    document.body.appendChild(popover);
+    document.body.appendChild(picker);
+
+    // Close when mouse leaves both the popover and the trigger (with a short grace period)
+    let rxLeaveTimer = null;
+    function scheduleClose() { rxLeaveTimer = setTimeout(closeRxPicker, 200); }
+    function cancelClose()   { clearTimeout(rxLeaveTimer); }
+
+    popover.addEventListener('mouseenter', cancelClose);
+    popover.addEventListener('mouseleave', () => {
+        if (picker.style.display !== 'none') return; // full picker is open — don't close
+        scheduleClose();
+    });
+    picker.addEventListener('mouseenter', cancelClose);
+    picker.addEventListener('mouseleave', scheduleClose);
+
+    // Expose so attachReactionTrigger can use them
+    setupReactionPicker._scheduleClose = scheduleClose;
+    setupReactionPicker._cancelClose   = cancelClose;
+
+    // Close on outside click — use composedPath() to correctly detect clicks
+    // inside shadow DOM elements (e.target retargeting makes closest() unreliable).
+    document.addEventListener('click', (e) => {
+        const path = e.composedPath();
+        const inside = path.some(el => el.id === 'rx-popover' || el.id === 'rx-full-picker' ||
+            (el.classList && el.classList.contains('msg-rx-trigger')));
+        if (!inside) closeRxPicker();
+    });
+
+    function openFullPicker() {
+        const trigger = rxTargetMsgId
+            ? document.querySelector(`.msg-rx-trigger[data-msg-id="${CSS.escape(rxTargetMsgId)}"]`)
+            : null;
+        if (trigger) positionNear(picker, trigger);
+        picker.style.display = 'block';
+    }
+}
+
+function closeRxPicker() {
+    document.getElementById('rx-popover')?.style.setProperty('display', 'none');
+    document.getElementById('rx-full-picker')?.style.setProperty('display', 'none');
+}
+
+function openRxPopover(msgId, triggerEl) {
+    const popover = document.getElementById('rx-popover');
+    if (!popover) return;
+    rxTargetMsgId = msgId;
+    positionNear(popover, triggerEl);
+    popover.style.display = 'flex';
+}
+
+function positionNear(el, anchor) {
+    // Show briefly off-screen to measure
+    el.style.visibility = 'hidden';
+    el.style.display = el.id === 'rx-full-picker' ? 'block' : 'flex';
+    const ew = el.offsetWidth  || 260;
+    const eh = el.offsetHeight || 44;
+    el.style.visibility = '';
+    el.style.display = 'none';
+
+    const rect = anchor.getBoundingClientRect();
+    let left = rect.left;
+    let top  = rect.top - eh - 6;
+
+    // Flip below if not enough space above
+    if (top < 8) top = rect.bottom + 6;
+    // Clamp horizontally
+    left = Math.max(8, Math.min(left, window.innerWidth - ew - 8));
+
+    el.style.position = 'fixed';
+    el.style.left = left + 'px';
+    el.style.top  = top  + 'px';
+}
+
+// ── Add reaction trigger button to a reactions bar ──
+function attachReactionTrigger(bar, id) {
+    const trigger = document.createElement('button');
+    trigger.className = 'msg-rx-trigger';
+    trigger.type = 'button';
+    trigger.title = 'Add reaction';
+    trigger.textContent = '😊';
+    trigger.dataset.msgId = id;
+    trigger.addEventListener('mouseenter', () => {
+        if (setupReactionPicker._cancelClose) setupReactionPicker._cancelClose();
+        openRxPopover(id, trigger);
+    });
+    trigger.addEventListener('mouseleave', () => {
+        if (setupReactionPicker._scheduleClose) setupReactionPicker._scheduleClose();
+    });
+    bar.appendChild(trigger);
+}
+
+// ── Update reaction pills on a message ──
+function applyReactions(msgId, reactions) {
+    const msg = document.querySelector(`.msg[data-msg-id="${CSS.escape(msgId)}"]`);
+    if (!msg) return;
+    const bar = msg.querySelector('.msg-reactions');
+    if (!bar) return;
+
+    // Remove existing pills, keep trigger
+    bar.querySelectorAll('.msg-rx-pill').forEach(p => p.remove());
+    const trigger = bar.querySelector('.msg-rx-trigger');
+
+    for (const [emoji, { count, users }] of Object.entries(reactions)) {
+        if (count === 0) continue;
+        const pill = document.createElement('button');
+        pill.type = 'button';
+        pill.className = 'msg-rx-pill' + (users.includes(currentUsername) ? ' active' : '');
+        pill.dataset.emoji = emoji;
+        pill.title = users.join(', ');
+        const countEl = document.createElement('span');
+        countEl.className = 'rx-count';
+        countEl.textContent = count;
+        pill.append(emoji, ' ', countEl);
+        pill.addEventListener('click', () => {
+            socket.emit('react-message', { roomId: state.roomId, msgId, emoji });
+        });
+        bar.insertBefore(pill, trigger);
+    }
+}
+
 // ── Message rendering ──
 function addMessageToChat(username, html, text, msgId) {
     const messagesDiv = document.getElementById('messages');
@@ -60,21 +231,14 @@ function addMessageToChat(username, html, text, msgId) {
             `<span class="msg-user">${escapeHtml(username)}</span>` +
             `<span class="msg-time">${nowTime()}</span>` +
         `</div>` +
-        `<div class="msg-body">${body}</div>` +
-        `<div class="msg-reactions"></div>`;
+        `<div class="msg-body">${body}</div>`;
 
-    // Like button wired after innerHTML so we can set dataset cleanly
-    const reactionsBar = msg.querySelector('.msg-reactions');
-    const likeBtn = document.createElement('button');
-    likeBtn.className = 'msg-like-btn';
-    likeBtn.type = 'button';
-    likeBtn.dataset.msgId = id;
-    likeBtn.innerHTML = '👍 <span class="msg-like-count"></span>';
-    likeBtn.addEventListener('click', () => {
-        socket.emit('react-message', { roomId: state.roomId, msgId: id, emoji: '👍' });
-    });
-    reactionsBar.appendChild(likeBtn);
+    const bar = document.createElement('div');
+    bar.className = 'msg-reactions';
+    attachReactionTrigger(bar, id);
+    msg.appendChild(bar);
 
+    highlightCodeBlocks(msg);
     messagesDiv.appendChild(msg);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
@@ -99,7 +263,6 @@ function addFileToChat(username, { filename, mimeType, data, size, msgId }) {
     header.appendChild(userEl);
     header.appendChild(timeEl);
 
-    // Build file card in DOM (not innerHTML) so we can safely set data: href
     const card = document.createElement('div');
     card.className = 'file-card';
 
@@ -128,21 +291,13 @@ function addFileToChat(username, { filename, mimeType, data, size, msgId }) {
     card.appendChild(info);
     card.appendChild(dl);
 
-    const reactionsBar = document.createElement('div');
-    reactionsBar.className = 'msg-reactions';
-    const likeBtn = document.createElement('button');
-    likeBtn.className = 'msg-like-btn';
-    likeBtn.type = 'button';
-    likeBtn.dataset.msgId = id;
-    likeBtn.innerHTML = '👍 <span class="msg-like-count"></span>';
-    likeBtn.addEventListener('click', () => {
-        socket.emit('react-message', { roomId: state.roomId, msgId: id, emoji: '👍' });
-    });
-    reactionsBar.appendChild(likeBtn);
+    const bar = document.createElement('div');
+    bar.className = 'msg-reactions';
+    attachReactionTrigger(bar, id);
 
     msg.appendChild(header);
     msg.appendChild(card);
-    msg.appendChild(reactionsBar);
+    msg.appendChild(bar);
     messagesDiv.appendChild(msg);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
@@ -172,6 +327,8 @@ export function setupChatListeners() {
     const editableEl = document.getElementById('rte-editable');
     if (!editableEl) return;
 
+    setupReactionPicker();
+
     const result = createChatEditor({
         editableEl,
         onSubmit({ html, text, files }) {
@@ -199,20 +356,7 @@ export function setupChatListeners() {
         document.getElementById('message-receive')?.play().catch(() => {});
     });
 
-    socket.on('message-reaction', ({ msgId, count, likedBy }) => {
-        const msg = document.querySelector(`.msg[data-msg-id="${CSS.escape(msgId)}"]`);
-        if (!msg) return;
-        const btn = msg.querySelector('.msg-like-btn');
-        if (!btn) return;
-        const countEl = btn.querySelector('.msg-like-count');
-        const liked = likedBy.includes(currentUsername);
-        btn.classList.toggle('liked', liked);
-        if (count > 0) {
-            countEl.textContent = count;
-            btn.style.display = '';
-        } else {
-            countEl.textContent = '';
-            btn.style.display = '';
-        }
+    socket.on('message-reaction', ({ msgId, reactions }) => {
+        applyReactions(msgId, reactions);
     });
 }
