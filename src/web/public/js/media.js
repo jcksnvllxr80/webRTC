@@ -202,32 +202,12 @@ export function stopVideo() {
 export async function reapplyAudioSettings() {
     if (!state.audioStream) return; // no live audio, nothing to do
 
-    try {
-        // Stop old audio tracks
-        state.audioStream.getTracks().forEach(track => track.stop());
+    const track = state.audioStream.getAudioTracks()[0];
+    if (!track) return;
 
-        // Get new stream with updated constraints
-        const newStream = await navigator.mediaDevices.getUserMedia({
-            audio: getAudioConstraints(),
-            video: false
-        });
-
-        state.audioStream = newStream;
-        const newTrack = newStream.getAudioTracks()[0];
-
-        // Replace the audio track on the peer connection
-        if (state.peerConnection) {
-            const senders = state.peerConnection.getSenders();
-            for (const sender of senders) {
-                if (sender.track && sender.track.kind === 'audio') {
-                    await sender.replaceTrack(newTrack);
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error reapplying audio settings:', error);
-        throw error; // let the caller handle UI feedback
-    }
+    // applyConstraints modifies the live track in-place — no interruption,
+    // no track replacement, no static burst on the remote end.
+    await track.applyConstraints(getAudioConstraints());
 }
 
 // Legacy — stop everything

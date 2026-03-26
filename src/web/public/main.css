@@ -530,6 +530,34 @@ body{
 /* ── Video section ── */
 #video-section{
     padding: var(--sp-sm) var(--sp-md) 0;
+    flex-shrink: 0;
+}
+
+/* ── Panel resize handle ── */
+#panel-resize-handle{
+    height: 8px;
+    cursor: ns-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: transparent;
+    transition: background var(--dur-short);
+}
+#panel-resize-handle:hover,
+#panel-resize-handle.dragging{
+    background: var(--c-border-subtle);
+}
+.resize-grip{
+    width: 32px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--c-overlay);
+    transition: background var(--dur-short);
+}
+#panel-resize-handle:hover .resize-grip,
+#panel-resize-handle.dragging .resize-grip{
+    background: var(--c-text-muted);
 }
 
 #videos{
@@ -716,7 +744,7 @@ body.enlarged #user-2{
     border-top: 1px solid var(--c-border);
     margin-top: var(--sp-xs);
     flex: 1;
-    min-height: 0;
+    min-height: 260px;
     overflow: hidden;
 }
 

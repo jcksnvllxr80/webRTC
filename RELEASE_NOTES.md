@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.8.7 — 2026-03-26
+
+### Fix: audio static and layout improvements
+
+- Fixed audio static when toggling noise suppression / echo cancellation / AGC — now uses `applyConstraints` on the live track instead of stopping and replacing it, eliminating the interruption that caused static
+- Draggable resize handle between video section and chat panel; position saved to localStorage
+- Bottom panel has a minimum height so the main scroll area always reaches it
+- SVG icons for edit/delete buttons inherit theme color correctly
+
+---
+
 ## v0.8.6 — 2026-03-26
 
 ### Fix: UI polish and scrolling edge cases
