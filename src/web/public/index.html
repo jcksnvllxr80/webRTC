@@ -121,9 +121,28 @@
                 <div id="messages">
                     <p class="chat-empty">No messages yet — say hello!</p>
                 </div>
-                <div class="chat-input-row">
-                    <input type="text" id="message-input" placeholder="Type a message..." aria-label="Chat message">
-                    <button id="send-message">Send</button>
+                <!-- Rich text attachment preview (shown when files are queued) -->
+                <div id="rte-attach-preview" class="rte-attach-preview" style="display:none"></div>
+                <!-- Rich text editor container (panels inside for correct positioning) -->
+                <div id="rte-container" class="rte-container">
+                    <!-- Emoji picker panel — floats above input -->
+                    <div id="rte-emoji-panel" class="rte-panel" style="display:none">
+                        <emoji-picker></emoji-picker>
+                    </div>
+                    <!-- GIF stub panel -->
+                    <div id="rte-gif-panel" class="rte-panel rte-gif-stub" style="display:none">
+                        <p>GIF search requires a Tenor API key.</p>
+                        <code>config/server.json → "tenorApiKey": "YOUR_KEY"</code>
+                    </div>
+                    <div id="rte-editable" class="rte-editable-wrap"></div>
+                    <div class="rte-actions">
+                        <button class="rte-action-btn" id="rte-emoji-btn" type="button" title="Emoji (or type :shortcode:)">😀</button>
+                        <button class="rte-action-btn rte-gif-label" id="rte-gif-btn" type="button" title="GIF">GIF</button>
+                        <button class="rte-action-btn" id="rte-attach-btn" type="button" title="Attach file or image (or drag & drop / paste)">📎</button>
+                        <input type="file" id="rte-file-input" multiple style="display:none" aria-hidden="true">
+                        <span class="rte-hint">↵ send · ⇧↵ newline</span>
+                        <button class="rte-send" id="rte-send-btn" type="button">Send</button>
+                    </div>
                 </div>
             </div>
         </section>

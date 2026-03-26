@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebRTC — Rich Text Chat Design Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --c-base:          #0e0e0e;
+    --c-surface:       #1a1a1a;
+    --c-elevated:      #242424;
+    --c-overlay:       #2e2e2e;
+    --c-border:        #333;
+    --c-border-subtle: #2a2a2a;
+
+    --c-accent:        #adff2f;
+    --c-accent-hover:  #98e626;
+    --c-accent-muted:  rgba(173,255,47,0.12);
+    --c-accent-text:   #111;
+
+    --c-text:          #e0e0e0;
+    --c-text-secondary:#999;
+    --c-text-muted:    #666;
+
+    --c-success:       #28a745;
+    --c-warning:       #f0ad4e;
+    --c-error:         #dc3545;
+    --c-info:          #5bc0de;
+
+    --font-sans:       'Geist', system-ui, sans-serif;
+    --font-mono:       'Geist Mono', 'Courier New', monospace;
+
+    --text-xs:   11px;
+    --text-sm:   13px;
+    --text-base: 15px;
+    --text-lg:   18px;
+    --text-xl:   22px;
+
+    --sp-xs:  4px;
+    --sp-sm:  8px;
+    --sp-md:  16px;
+    --sp-lg:  24px;
+    --sp-xl:  32px;
+
+    --r-sm:   4px;
+    --r-md:   8px;
+    --r-lg:   12px;
+    --r-full: 9999px;
+
+    --dur-micro:  80ms;
+    --dur-short:  180ms;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    background: var(--c-surface);
+    color: var(--c-text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .page { max-width: 900px; margin: 0 auto; padding: var(--sp-xl) var(--sp-md); }
+
+  .section { margin-bottom: 56px; }
+  .section-label {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-accent);
+    margin-bottom: var(--sp-md);
+  }
+  .section-title {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--c-text);
+    margin-bottom: var(--sp-sm);
+  }
+  .section-desc {
+    font-size: var(--text-sm);
+    color: var(--c-text-secondary);
+    margin-bottom: var(--sp-lg);
+  }
+
+  .page-header {
+    border-bottom: 1px solid var(--c-border);
+    padding-bottom: var(--sp-lg);
+    margin-bottom: var(--sp-xl);
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-md);
+  }
+  .logo {
+    font-size: var(--text-lg);
+    font-weight: 800;
+    color: var(--c-accent);
+    letter-spacing: -0.5px;
+  }
+  .page-title { font-size: var(--text-base); color: var(--c-text-secondary); }
+  .badge {
+    margin-left: auto;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    padding: 3px 8px;
+    background: var(--c-accent-muted);
+    color: var(--c-accent);
+    border: 1px solid rgba(173,255,47,0.25);
+    border-radius: var(--r-full);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .card {
+    background: var(--c-elevated);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: var(--sp-sm) var(--sp-md);
+    border-bottom: 1px solid var(--c-border);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+    display: flex;
+    align-items: center;
+    gap: var(--sp-sm);
+  }
+  .card-header .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-accent); }
+  .card-body { padding: var(--sp-md); }
+
+  /* Chat feed */
+  .chat-feed { display: flex; flex-direction: column; gap: 2px; font-size: var(--text-sm); }
+  .msg {
+    padding: 3px var(--sp-xs);
+    border-radius: 3px;
+    line-height: 1.5;
+    transition: background var(--dur-micro) ease;
+  }
+  .msg:hover { background: rgba(255,255,255,0.03); }
+  .msg .username { font-weight: 600; color: var(--c-accent); margin-right: 6px; }
+  .msg .ts { font-size: var(--text-xs); color: var(--c-text-muted); margin-left: 6px; }
+
+  .msg strong { font-weight: 700; color: var(--c-text); }
+  .msg em { font-style: italic; color: #c8c8c8; }
+  .msg s { text-decoration: line-through; color: var(--c-text-muted); }
+  .msg mark {
+    background: var(--c-accent-muted);
+    color: var(--c-accent);
+    padding: 1px 3px;
+    border-radius: 2px;
+  }
+  .msg code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--c-base);
+    border: 1px solid var(--c-border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--c-accent);
+  }
+  .msg .block-code {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--c-base);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-sm);
+    padding: var(--sp-sm) var(--sp-md);
+    margin: var(--sp-xs) 0;
+    overflow-x: auto;
+    color: #c8e6c9;
+    white-space: pre;
+    position: relative;
+  }
+  .msg .code-lang {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--c-text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .msg blockquote {
+    border-left: 3px solid var(--c-accent);
+    background: var(--c-base);
+    padding: var(--sp-xs) var(--sp-sm);
+    margin: var(--sp-xs) 0;
+    border-radius: 0 3px 3px 0;
+    font-style: italic;
+    color: var(--c-text-secondary);
+  }
+  .msg .image-placeholder {
+    display: flex;
+    width: 280px;
+    height: 140px;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--c-border-subtle);
+    margin: var(--sp-xs) 0;
+    background: linear-gradient(135deg, #1e2a1a 0%, #142014 100%);
+    align-items: center;
+    justify-content: center;
+    color: var(--c-accent);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .file-card {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-sm);
+    background: var(--c-base);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-sm);
+    padding: var(--sp-sm) var(--sp-md);
+    margin: var(--sp-xs) 0;
+    min-width: 200px;
+    max-width: 320px;
+  }
+  .file-icon { font-size: 20px; flex-shrink: 0; }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: var(--text-sm); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-size { font-size: var(--text-xs); color: var(--c-text-muted); }
+  .file-dl {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--c-accent);
+    background: none;
+    border: 1px solid rgba(173,255,47,0.3);
+    border-radius: var(--r-sm);
+    padding: 3px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--dur-micro) ease;
+  }
+  .file-dl:hover { background: var(--c-accent-muted); }
+
+  .gif-badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    background: var(--c-overlay);
+    border: 1px solid var(--c-border);
+    color: var(--c-accent);
+    padding: 1px 4px;
+    border-radius: 2px;
+    letter-spacing: 0.06em;
+    vertical-align: top;
+    margin-left: 3px;
+  }
+
+  /* Rich text input */
+  .rte-container {
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-sm);
+    background: var(--c-elevated);
+    transition: border-color var(--dur-micro) ease-out, box-shadow var(--dur-micro) ease-out;
+    position: relative;
+  }
+  .rte-container.focused {
+    border-color: var(--c-accent);
+    box-shadow: 0 0 0 2px var(--c-accent-muted);
+  }
+
+  .attach-preview-row {
+    display: flex;
+    gap: var(--sp-sm);
+    padding: var(--sp-sm) var(--sp-sm) 0;
+    flex-wrap: wrap;
+  }
+  .attach-thumb {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--c-border);
+    overflow: hidden;
+    background: var(--c-overlay);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+  .attach-thumb .remove-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.75);
+    border: 1px solid var(--c-border);
+    color: var(--c-text-secondary);
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .attach-thumb .file-type {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--c-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .rte-editable {
+    padding: var(--sp-sm);
+    min-height: 38px;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--c-text);
+    outline: none;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+  .rte-editable .placeholder { color: var(--c-text-muted); pointer-events: none; }
+
+  .rte-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px var(--sp-sm);
+    border-top: 1px solid var(--c-border-subtle);
+  }
+  .rte-action-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    color: var(--c-text-secondary);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    font-size: 15px;
+    transition: background var(--dur-micro) ease, color var(--dur-micro) ease;
+    flex-shrink: 0;
+  }
+  .rte-action-btn:hover { background: var(--c-overlay); color: var(--c-accent); }
+  .rte-hint { margin-left: auto; font-size: var(--text-xs); color: var(--c-text-muted); padding-right: var(--sp-xs); white-space: nowrap; }
+  .rte-send {
+    padding: 5px var(--sp-md);
+    background: var(--c-accent);
+    color: var(--c-accent-text);
+    border: none;
+    border-radius: var(--r-sm);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--dur-micro) ease;
+    white-space: nowrap;
+  }
+  .rte-send:hover { background: var(--c-accent-hover); }
+
+  /* Floating toolbar */
+  .float-toolbar {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--c-overlay);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-sm);
+    padding: 3px 4px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .float-toolbar::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    background: var(--c-overlay);
+    border-right: 1px solid var(--c-border);
+    border-bottom: 1px solid var(--c-border);
+    transform: translateX(-50%) rotate(45deg);
+  }
+  .ft-btn {
+    width: 28px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    color: var(--c-text-secondary);
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    transition: background var(--dur-micro) ease, color var(--dur-micro) ease;
+  }
+  .ft-btn:hover { background: rgba(255,255,255,0.07); color: var(--c-text); }
+  .ft-btn.active { background: var(--c-accent-muted); color: var(--c-accent); }
+  .ft-sep { width: 1px; height: 14px; background: var(--c-border); margin: 0 2px; }
+
+  .selection-hl {
+    background: rgba(100,150,255,0.25);
+    border-bottom: 2px solid rgba(100,150,255,0.5);
+    padding: 0 2px;
+  }
+
+  /* Emoji panel */
+  .emoji-panel {
+    background: var(--c-overlay);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-md);
+    width: 280px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  }
+  .emoji-search { padding: var(--sp-sm); border-bottom: 1px solid var(--c-border-subtle); }
+  .emoji-search input {
+    width: 100%;
+    background: var(--c-elevated);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-sm);
+    padding: 5px var(--sp-sm);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--c-text);
+    outline: none;
+  }
+  .emoji-search input::placeholder { color: var(--c-text-muted); }
+  .emoji-search input:focus { border-color: var(--c-accent); }
+  .emoji-cats {
+    display: flex;
+    border-bottom: 1px solid var(--c-border-subtle);
+    padding: 4px var(--sp-xs);
+    gap: 2px;
+  }
+  .emoji-cat-btn {
+    width: 28px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: none;
+    border-radius: var(--r-sm);
+    cursor: pointer; font-size: 14px;
+    opacity: 0.5;
+    transition: opacity var(--dur-micro) ease, background var(--dur-micro) ease;
+  }
+  .emoji-cat-btn:hover { opacity: 1; background: rgba(255,255,255,0.06); }
+  .emoji-cat-btn.active { opacity: 1; background: var(--c-accent-muted); }
+  .emoji-section-label {
+    font-size: var(--text-xs); font-weight: 600;
+    color: var(--c-text-muted);
+    padding: 6px var(--sp-sm) 2px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 1px;
+    padding: 4px var(--sp-xs);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .emoji-btn {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: none;
+    border-radius: 3px; cursor: pointer; font-size: 18px;
+    transition: background var(--dur-micro) ease, transform var(--dur-micro) ease;
+  }
+  .emoji-btn:hover { background: rgba(255,255,255,0.07); transform: scale(1.2); }
+
+  /* Keyboard shortcuts */
+  .kbd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-sm); }
+  .kbd-item {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-xs) 0;
+    border-bottom: 1px solid var(--c-border-subtle);
+  }
+  .kbd { display: inline-flex; gap: 3px; flex-shrink: 0; }
+  .key {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    padding: 2px 5px;
+    background: var(--c-overlay);
+    border: 1px solid var(--c-border); border-bottom-width: 2px;
+    border-radius: 3px; color: var(--c-text-secondary); line-height: 1.4;
+  }
+  .kbd-label { font-size: var(--text-sm); color: var(--c-text-secondary); }
+
+  /* Autocomplete */
+  .autocomplete-dropdown {
+    background: var(--c-overlay);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-sm);
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    width: 220px;
+  }
+  .ac-item {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: 6px var(--sp-sm); cursor: pointer;
+    transition: background var(--dur-micro) ease;
+    font-size: var(--text-sm);
+  }
+  .ac-item:hover { background: rgba(255,255,255,0.05); }
+  .ac-item.selected { background: var(--c-accent-muted); }
+  .ac-emoji { font-size: 18px; }
+  .ac-name { color: var(--c-text-secondary); }
+  .ac-name span { color: var(--c-accent); }
+
+  /* Token swatches */
+  .swatch-row { display: flex; gap: var(--sp-sm); flex-wrap: wrap; }
+  .swatch { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .swatch-color { width: 44px; height: 44px; border-radius: var(--r-sm); border: 1px solid rgba(255,255,255,0.08); }
+  .swatch-hex { font-family: var(--font-mono); font-size: 9px; color: var(--c-text-muted); letter-spacing: 0.04em; }
+  .swatch-name { font-size: 9px; color: var(--c-text-muted); text-align: center; max-width: 44px; line-height: 1.2; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-md); }
+  @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--c-overlay); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--c-border); }
+
+  hr { border: none; border-top: 1px solid var(--c-border-subtle); margin: var(--sp-xl) 0; }
+
+  .hint-tag {
+    display: inline-block;
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    padding: 2px 6px;
+    background: var(--c-elevated); border: 1px solid var(--c-border);
+    border-radius: 3px; color: var(--c-text-muted); vertical-align: middle;
+  }
+
+  .theme-toggle {
+    position: fixed; top: var(--sp-md); right: var(--sp-md);
+    display: flex; align-items: center; gap: var(--sp-xs);
+    background: var(--c-overlay); border: 1px solid var(--c-border);
+    border-radius: var(--r-full); padding: 4px 10px;
+    cursor: pointer; font-size: var(--text-xs); font-weight: 600;
+    color: var(--c-text-secondary); z-index: 100;
+    transition: color var(--dur-short) ease; font-family: var(--font-sans);
+  }
+  .theme-toggle:hover { color: var(--c-text); }
+
+  body.light {
+    --c-base:          #ebebeb;
+    --c-surface:       #f5f5f0;
+    --c-elevated:      #ffffff;
+    --c-overlay:       #e8e8e3;
+    --c-border:        #d0d0c8;
+    --c-border-subtle: #e0e0d8;
+    --c-accent:        #5a8400;
+    --c-accent-hover:  #4a6e00;
+    --c-accent-muted:  rgba(90,132,0,0.1);
+    --c-accent-text:   #fff;
+    --c-text:          #1a1a1a;
+    --c-text-secondary:#555;
+    --c-text-muted:    #888;
+  }
+
+  .trigger-demo {
+    font-size: var(--text-sm); font-family: var(--font-sans);
+    color: var(--c-text); padding: 6px var(--sp-sm);
+    background: var(--c-elevated); border: 1px solid var(--c-border);
+    border-radius: var(--r-sm); margin-bottom: var(--sp-sm);
+  }
+  .trigger-demo .cursor {
+    display: inline-block; width: 1px; height: 14px;
+    background: var(--c-accent); vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="document.body.classList.toggle('light'); this.textContent = document.body.classList.contains('light') ? '🌙 Dark' : '☀️ Light'">☀️ Light</button>
+
+<div class="page">
+
+  <div class="page-header">
+    <span class="logo">WebRTC</span>
+    <span class="page-title">Rich Text Chat — Design Preview</span>
+    <span class="badge">New Component</span>
+  </div>
+
+  <!-- 01 Message Feed -->
+  <div class="section">
+    <div class="section-label">01 — Message Rendering</div>
+    <div class="section-title">Rich text in the chat feed</div>
+    <div class="section-desc">Every formatting type rendered in the existing dark aesthetic. Code blocks use Geist Mono with a terminal green palette. Inline code is accent-tinted.</div>
+
+    <div class="card">
+      <div class="card-header"><span class="dot"></span>chat — main room</div>
+      <div class="card-body">
+        <div class="chat-feed">
+
+          <div class="msg">
+            <span class="username">alex:</span>
+            just pushed the ICE fix — <strong>this should finally solve the timeout</strong>
+            <span class="ts">14:02</span>
+          </div>
+
+          <div class="msg">
+            <span class="username">priya:</span>
+            nice. tested on <em>mobile safari</em> and <em>firefox</em>?
+            <span class="ts">14:03</span>
+          </div>
+
+          <div class="msg">
+            <span class="username">alex:</span>
+            yep. the bug was <code>RTCPeerConnection.close()</code> not being called — it was <s>leaking</s> accumulating connections
+            <span class="ts">14:03</span>
+          </div>
+
+          <div class="msg">
+            <span class="username">alex:</span>
+            here's the fix:<br>
+            <div class="block-code"><span class="code-lang">js</span>if (state.peerConnection) {
+  state.peerConnection.close();
+  state.peerConnection = null;
+}
+state.peerConnection = new RTCPeerConnection(config);</div>
+            <span class="ts">14:04</span>
+          </div>
+
+          <div class="msg">
+            <span class="username">priya:</span>
+            <mark>ship it</mark> 🚀
+            <span class="ts">14:04</span>
+          </div>
+
+          <div class="msg">
+            <span class="username">priya:</span>
+            attaching my test results:<br>
+            <div class="file-card">
+              <div class="file-icon">📊</div>
+              <div class="file-info">
+                <div class="file-name">ice-test-results-mar26.csv</div>
+                <div class="file-size">12.4 KB</div>
+              </div>
+              <button class="file-dl">↓ Get</button>
+            </div>
+            <span class="ts">14:05</span>
+          </div>
+
+          <div class="msg">
+            <span class="username">alex:</span>
+            lol this is me when I found it<span class="gif-badge">GIF</span><br>
+            <div class="image-placeholder">[ gif preview · autoplay ]</div>
+            <span class="ts">14:06</span>
+          </div>
+
+          <div class="msg">
+            <span class="username">priya:</span>
+            <blockquote>ship it 🚀</blockquote>
+            still stands
+            <span class="ts">14:06</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 Input Composer -->
+  <div class="section">
+    <div class="section-label">02 — Input Composer</div>
+    <div class="section-title">The rich text input</div>
+    <div class="section-desc">Replaces the plain <code style="font-family:var(--font-mono);font-size:12px;background:var(--c-elevated);border:1px solid var(--c-border);padding:1px 5px;border-radius:3px;color:var(--c-accent)">&lt;input&gt;</code>. Contenteditable div, auto-expands to 5 lines. Emoji / GIF / attach live in the bottom edge — first-class, not bolted on.</div>
+
+    <div class="two-col">
+      <div>
+        <div class="hint-tag" style="margin-bottom:8px">empty state</div>
+        <div class="rte-container">
+          <div class="rte-editable">
+            <span class="placeholder">Type a message...</span>
+          </div>
+          <div class="rte-actions">
+            <button class="rte-action-btn" title="Emoji (click or type :emoji:)">😀</button>
+            <button class="rte-action-btn" title="GIF search" style="font-size:11px;font-weight:700;font-family:var(--font-mono);color:var(--c-text-muted);width:auto;padding:0 6px;">GIF</button>
+            <button class="rte-action-btn" title="Attach file or image (or drag & drop / paste)">📎</button>
+            <div class="rte-hint">↵ send · ⇧↵ newline</div>
+            <button class="rte-send">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="hint-tag" style="margin-bottom:8px">focused · attachment queued</div>
+        <div class="rte-container focused">
+          <div class="attach-preview-row">
+            <div class="attach-thumb">
+              <div style="width:100%;height:100%;background:linear-gradient(135deg,#1e3a1e,#0e1e0e);display:flex;align-items:center;justify-content:center;color:var(--c-accent);font-size:10px;font-weight:700;font-family:var(--font-mono)">IMG</div>
+              <div class="remove-btn">✕</div>
+            </div>
+            <div class="attach-thumb">
+              <div class="file-type">PDF</div>
+              <div class="remove-btn">✕</div>
+            </div>
+          </div>
+          <div class="rte-editable">here are the assets</div>
+          <div class="rte-actions">
+            <button class="rte-action-btn">😀</button>
+            <button class="rte-action-btn" style="font-size:11px;font-weight:700;font-family:var(--font-mono);color:var(--c-text-muted);width:auto;padding:0 6px;">GIF</button>
+            <button class="rte-action-btn">📎</button>
+            <div class="rte-hint">↵ send · ⇧↵ newline</div>
+            <button class="rte-send">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 Floating Toolbar -->
+  <div class="section">
+    <div class="section-label">03 — Selection Toolbar</div>
+    <div class="section-title">Floating format bar</div>
+    <div class="section-desc">Appears above any text selection. Disappears on click-away or deselect. Arrow caret points to selection anchor. No persistent chrome.</div>
+
+    <div class="card">
+      <div class="card-body">
+        <div style="text-align:center; padding: 32px 0 16px; display:flex; flex-direction:column; align-items:center; gap:24px;">
+          <div class="float-toolbar">
+            <button class="ft-btn active"><strong>B</strong></button>
+            <button class="ft-btn"><em>I</em></button>
+            <button class="ft-btn"><s style="font-size:12px">S</s></button>
+            <div class="ft-sep"></div>
+            <button class="ft-btn" style="font-family:var(--font-mono);font-size:12px">`</button>
+            <button class="ft-btn" style="font-size:11px;font-weight:600">≡</button>
+            <div class="ft-sep"></div>
+            <button class="ft-btn" style="font-size:11px;font-weight:800;color:var(--c-accent)">H</button>
+            <button class="ft-btn" style="font-size:15px">"</button>
+            <button class="ft-btn" style="font-size:12px">🔗</button>
+          </div>
+          <div style="font-size:var(--text-sm);color:var(--c-text)">
+            Ship it early, <span class="selection-hl">iterate fast</span>, and keep the scope tight.
+          </div>
+        </div>
+        <div style="display:flex;gap:32px;justify-content:center;flex-wrap:wrap;padding:var(--sp-md) 0 var(--sp-xs)">
+          <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <button class="ft-btn active" style="width:36px;height:32px"><strong>B</strong></button>
+            <span style="font-size:10px;color:var(--c-text-muted)">bold active</span>
+          </div>
+          <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <button class="ft-btn" style="width:36px;height:32px;color:var(--c-accent);background:var(--c-accent-muted);font-size:11px;font-weight:800">H</button>
+            <span style="font-size:10px;color:var(--c-text-muted)">highlight</span>
+          </div>
+          <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <button class="ft-btn" style="width:36px;height:32px;font-family:var(--font-mono);font-size:11px">≡</button>
+            <span style="font-size:10px;color:var(--c-text-muted)">code block</span>
+          </div>
+          <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <button class="ft-btn" style="width:36px;height:32px;font-size:18px">"</button>
+            <span style="font-size:10px;color:var(--c-text-muted)">quote</span>
+          </div>
+          <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <button class="ft-btn" style="width:36px;height:32px;font-size:12px">🔗</button>
+            <span style="font-size:10px;color:var(--c-text-muted)">link</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 Emoji -->
+  <div class="section">
+    <div class="section-label">04 — Emoji</div>
+    <div class="section-title">Picker panel + :shortcode: autocomplete</div>
+    <div class="section-desc">Two entry points. Press 😀 for the full panel. Type <code style="font-family:var(--font-mono);font-size:12px;background:var(--c-elevated);border:1px solid var(--c-border);padding:1px 5px;border-radius:3px;color:var(--c-accent)">:name</code> for inline autocomplete. Uses <strong>emoji-picker-element</strong> (~12KB web component, fully styleable).</div>
+
+    <div class="two-col">
+      <div>
+        <div class="hint-tag" style="margin-bottom:8px">picker panel</div>
+        <div class="emoji-panel">
+          <div class="emoji-search"><input placeholder="Search emoji…" value="rock"></div>
+          <div class="emoji-cats">
+            <button class="emoji-cat-btn active">🕐</button>
+            <button class="emoji-cat-btn">😀</button>
+            <button class="emoji-cat-btn">🐶</button>
+            <button class="emoji-cat-btn">🍕</button>
+            <button class="emoji-cat-btn">⚽</button>
+            <button class="emoji-cat-btn">✈️</button>
+            <button class="emoji-cat-btn">💡</button>
+            <button class="emoji-cat-btn">❤️</button>
+          </div>
+          <div class="emoji-section-label">Recent</div>
+          <div class="emoji-grid">
+            <button class="emoji-btn">🚀</button>
+            <button class="emoji-btn">✅</button>
+            <button class="emoji-btn">🔥</button>
+            <button class="emoji-btn">👀</button>
+            <button class="emoji-btn">🎉</button>
+            <button class="emoji-btn">💯</button>
+            <button class="emoji-btn">🤔</button>
+            <button class="emoji-btn">👍</button>
+          </div>
+          <div class="emoji-section-label">Search results</div>
+          <div class="emoji-grid">
+            <button class="emoji-btn">🪨</button>
+            <button class="emoji-btn">🎸</button>
+            <button class="emoji-btn">🤘</button>
+            <button class="emoji-btn">🧗</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="hint-tag" style="margin-bottom:8px">:shortcode: autocomplete</div>
+        <div class="trigger-demo">nice work on the fix :roc<span class="cursor"></span></div>
+        <div class="autocomplete-dropdown">
+          <div class="ac-item selected">
+            <span class="ac-emoji">🪨</span>
+            <span class="ac-name">:<span>roc</span>k:</span>
+          </div>
+          <div class="ac-item">
+            <span class="ac-emoji">🚀</span>
+            <span class="ac-name">:<span>roc</span>ket:</span>
+          </div>
+          <div class="ac-item">
+            <span class="ac-emoji">🧗</span>
+            <span class="ac-name">:<span>roc</span>k_climbing:</span>
+          </div>
+        </div>
+        <div style="margin-top:var(--sp-sm);font-size:var(--text-xs);color:var(--c-text-muted)">
+          ↑↓ navigate · ↵ insert · Esc dismiss
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 05 Keyboard Shortcuts -->
+  <div class="section">
+    <div class="section-label">05 — Keyboard Shortcuts</div>
+    <div class="section-title">Full shortcut map</div>
+    <div class="section-desc">All formatting accessible by keyboard. The selection toolbar is the discoverable surface; shortcuts are the power-user path.</div>
+    <div class="card">
+      <div class="card-body">
+        <div class="kbd-grid">
+          <div class="kbd-item"><div class="kbd"><span class="key">Ctrl</span><span class="key">B</span></div><span class="kbd-label">Bold</span></div>
+          <div class="kbd-item"><div class="kbd"><span class="key">Ctrl</span><span class="key">I</span></div><span class="kbd-label">Italic</span></div>
+          <div class="kbd-item"><div class="kbd"><span class="key">Ctrl</span><span class="key">⇧</span><span class="key">X</span></div><span class="kbd-label">Strikethrough</span></div>
+          <div class="kbd-item"><div class="kbd"><span class="key">Ctrl</span><span class="key">`</span></div><span class="kbd-label">Inline code</span></div>
+          <div class="kbd-item"><div class="kbd"><span class="key">Ctrl</span><span class="key">⇧</span><span class="key">`</span></div><span class="kbd-label">Code block</span></div>
+          <div class="kbd-item"><div class="kbd"><span class="key">Ctrl</span><span class="key">⇧</span><span class="key">H</span></div><span class="kbd-label">Highlight</span></div>
+          <div class="kbd-item"><div class="kbd"><span class="key">Ctrl</span><span class="key">⇧</span><span class="key">B</span></div><span class="kbd-label">Blockquote</span></div>
+          <div class="kbd-item"><div class="kbd"><span class="key">Ctrl</span><span class="key">K</span></div><span class="kbd-label">Insert link</span></div>
+          <div class="kbd-item"><div class="kbd"><span class="key">↵</span></div><span class="kbd-label">Send message</span></div>
+          <div class="kbd-item"><div class="kbd"><span class="key">⇧</span><span class="key">↵</span></div><span class="kbd-label">Line break</span></div>
+          <div class="kbd-item"><div class="kbd"><span class="key">:</span><span style="font-size:var(--text-xs);color:var(--c-text-muted);padding:0 2px">name</span></div><span class="kbd-label">Emoji autocomplete</span></div>
+          <div class="kbd-item"><div class="kbd"><span class="key">Esc</span></div><span class="kbd-label">Dismiss picker</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 06 Tokens -->
+  <div class="section">
+    <div class="section-label">06 — New Design Tokens</div>
+    <div class="section-title">Component-level additions</div>
+    <div class="section-desc">All derived from the existing system. No new brand colors. The greenyellow accent and neutral surfaces handle everything.</div>
+    <div class="card">
+      <div class="card-body">
+        <div style="margin-bottom:var(--sp-md)">
+          <div style="font-size:var(--text-xs);font-weight:600;color:var(--c-text-muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:var(--sp-sm)">Formatting marks</div>
+          <div class="swatch-row">
+            <div class="swatch">
+              <div class="swatch-color" style="background:#adff2f;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#111">code</div>
+              <div class="swatch-hex">#adff2f</div>
+              <div class="swatch-name">inline code text</div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:rgba(173,255,47,0.12)"></div>
+              <div class="swatch-hex">12% acc.</div>
+              <div class="swatch-name">code bg / highlight bg</div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#0e0e0e;border:1px solid #333"></div>
+              <div class="swatch-hex">#0e0e0e</div>
+              <div class="swatch-name">code block bg</div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-color" style="background:#c8e6c9"></div>
+              <div class="swatch-hex">#c8e6c9</div>
+              <div class="swatch-name">code block text</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:var(--text-xs);font-weight:600;color:var(--c-text-muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:var(--sp-sm)">Recommended libraries</div>
+          <div style="font-size:var(--text-sm);color:var(--c-text-secondary);line-height:2">
+            Rich text engine: <code style="font-family:var(--font-mono);font-size:12px;background:var(--c-elevated);border:1px solid var(--c-border);padding:1px 5px;border-radius:3px;color:var(--c-accent)">Tiptap</code> (vanilla JS, ProseMirror-based, tree-shakable — ideal for no-framework apps)<br>
+            Emoji picker: <code style="font-family:var(--font-mono);font-size:12px;background:var(--c-elevated);border:1px solid var(--c-border);padding:1px 5px;border-radius:3px;color:var(--c-accent)">emoji-picker-element</code> (~12KB web component, no dependencies, fully CSS-styleable)<br>
+            GIF search: <code style="font-family:var(--font-mono);font-size:12px;background:var(--c-elevated);border:1px solid var(--c-border);padding:1px 5px;border-radius:3px;color:var(--c-accent)">Tenor API v2</code> (free, no forced branding — unlike GIPHY free tier)
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+  <div style="font-size:var(--text-xs);color:var(--c-text-muted);text-align:center;padding-bottom:var(--sp-xl)">
+    WebRTC Design System · Rich Text Chat Extension · /design-consultation · 2026-03-26
+  </div>
+
+</div>
+</body>
+</html>

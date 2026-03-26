@@ -1,5 +1,66 @@
 # Release Notes
 
+## v0.8.1 — 2026-03-26
+
+### Message Likes & Syntax-Highlighted Code Blocks
+
+**Message reactions**
+- 👍 button appears on hover for every message (including your own)
+- Click to like; click again to unlike (toggle)
+- Button stays visible with a count badge when anyone has liked the message
+- Turns accent-colored when the current user has liked it
+- Reactions are tracked per-room in server memory and cleared when the room empties
+
+**Syntax-highlighted code blocks**
+- Type ` ```python ` (or any supported language) at the start of a line to create a highlighted code block
+- Supported languages: `python`/`py`, `javascript`/`js`, `typescript`/`ts`, `bash`/`sh`/`shell`, `json`, `sql`, `html`/`xml`, `css`, `go`, `rust`, `java`, `cpp`/`c`
+- Syntax colors use a VS Code Dark+ palette — highlights carry through to received messages
+- A faint language label appears above the code block in both the composer and the message feed
+
+---
+
+## v0.8.0 — 2026-03-26
+
+### Rich Text Chat Editor
+
+Chat now supports full rich text authoring, file attachments, emoji, and inline images.
+
+**Composer**
+- `contenteditable` input powered by [Tiptap](https://tiptap.dev/) (ProseMirror-based) — no `<textarea>`, supports structured content
+- **↵** sends, **⇧↵** inserts a newline
+- Auto-grows up to ~5 lines before scrolling; collapses back after send
+
+**Inline formatting**
+- Floating selection toolbar appears on text selection: **Bold**, _Italic_, ~~Strikethrough~~, ==Highlight==, `Inline Code`, and Link insertion
+- Keyboard shortcuts work too: `Ctrl+B`, `Ctrl+I`, `Ctrl+Shift+X` (strikethrough), `Ctrl+Shift+H` (highlight), `` Ctrl+` `` (inline code)
+- Fenced code blocks render with monospace font and a subtle border
+
+**Emoji**
+- 😀 button opens a full emoji picker panel (web component — searchable, categorized)
+- `:shortcode:` autocomplete: type `:` followed by a name (e.g., `:wave`) to get an inline suggestion dropdown; **↑↓** to navigate, **Enter** to apply, **Esc** to dismiss
+
+**GIF**
+- GIF button is present; search requires a Tenor API key in `config/server.json → "tenorApiKey"`
+
+**File & image attachments**
+- 📎 button opens a file picker; drag-and-drop and paste also work
+- Images are embedded inline in the composer and sent as base64 (≤ ~5 MB)
+- Non-image files show a thumbnail strip above the input; click × to remove before sending
+- Received files appear as downloadable cards in the message feed
+
+**Message rendering**
+- All rich formatting (bold, italic, code blocks, blockquotes, lists, links, inline images) renders in the message feed
+- Incoming HTML is sanitized with DOMPurify before insertion — `data:` image URIs are preserved
+- File messages render as a file card with icon, name, size, and a download link
+
+**Libraries added**
+- `@tiptap/starter-kit`, `@tiptap/extension-highlight`, `@tiptap/extension-image`, `@tiptap/extension-link`, `@tiptap/extension-placeholder` — editor core
+- `emoji-picker-element` — emoji picker web component
+- `dompurify` — HTML sanitization for received messages
+- `esbuild` (devDependency) — bundles the editor source into `public/js/chat-editor.js`
+
+---
+
 ## v0.7.0 — 2026-03-25
 
 ### Audio Settings Menu

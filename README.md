@@ -104,6 +104,52 @@ You can also:
 * add the other user as a friend
 * click `Invite` next to a friend's name to create a room and copy the link to your clipboard
 
+## Chat
+
+The in-room chat supports rich text, file attachments, emoji, and inline images.
+
+### Formatting
+
+| Action | How |
+|--------|-----|
+| Bold | Select text → toolbar, or `Ctrl+B` |
+| Italic | Select text → toolbar, or `Ctrl+I` |
+| Strikethrough | Select text → toolbar, or `Ctrl+Shift+X` |
+| Highlight | Select text → toolbar, or `Ctrl+Shift+H` |
+| Inline code | Select text → toolbar, or `` Ctrl+` `` |
+| Code block | Start a line with ` ``` ` |
+| Link | Select text → toolbar → paste URL |
+| Send | `Enter` |
+| Newline | `Shift+Enter` |
+
+### Emoji
+
+Click 😀 to open the emoji picker, or type `:shortcode:` (e.g. `:wave:`) directly in the input for inline autocomplete. Use ↑↓ to navigate suggestions and Enter to apply.
+
+### GIF support
+
+GIF search requires a [Tenor API v2](https://developers.google.com/tenor/guides/quickstart) key. Add it to `config/server.json`:
+
+```json
+{
+  "tenorApiKey": "YOUR_KEY_HERE"
+}
+```
+
+### File and image attachments
+
+Click 📎, drag files onto the input, or paste an image from the clipboard. Images up to ~5 MB are embedded inline. Other files are sent as downloadable cards. The server enforces a hard 5 MB limit per file.
+
+### Rebuilding the editor bundle
+
+The chat editor (Tiptap, DOMPurify, emoji-picker-element) is pre-bundled at `src/web/public/js/chat-editor.js`. If you modify `src/web/editor-src/index.js`, rebuild with:
+
+```bash
+npm run build:editor
+```
+
+This requires esbuild, which is included in the dev dependencies.
+
 ## Electron Desktop Client
 
 The Electron app is a desktop client for the HTTPS server. It does not replace the server, so the server must already be running.
@@ -190,11 +236,15 @@ Runtime package dependencies:
 * `express`
 * `express-session`
 * `socket.io`
+* `@tiptap/starter-kit`, `@tiptap/extension-highlight`, `@tiptap/extension-image`, `@tiptap/extension-link`, `@tiptap/extension-placeholder` — rich text editor
+* `emoji-picker-element` — emoji picker
+* `dompurify` — HTML sanitization
 
-Desktop build dependencies:
+Desktop and editor build dependencies:
 
 * `electron`
 * `electron-builder`
+* `esbuild` — bundles the chat editor source
 
 ## Inspired By
 

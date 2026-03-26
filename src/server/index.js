@@ -188,6 +188,7 @@ const onlineUsers = new Map();
 
 // Track room membership: roomId -> Map<socketId, { username, mediaState }>
 const rooms = new Map();
+const messageReactions = new Map(); // roomId → Map<msgId, Set<username>>
 
 // API endpoint for online status
 app.get('/api/online', (req, res) => {
@@ -268,6 +269,7 @@ io.on('connection', (socket) => {
             rooms.get(roomId).delete(socket.id);
             if (rooms.get(roomId).size === 0) {
                 rooms.delete(roomId);
+                messageReactions.delete(roomId);
             } else {
                 const participants = Object.fromEntries(rooms.get(roomId));
                 io.in(roomId).emit('room-participants', participants);
@@ -283,13 +285,54 @@ io.on('connection', (socket) => {
         }
     });
 
-    // handler for chat messages
+    // handler for chat messages (rich text)
     socket.on('chat-message', (data) => {
         const username = socket.request.session.username;
-        // Broadcast to everyone in the room, including the sender
+        if (!data.roomId) return;
         io.in(data.roomId).emit('chat-message', {
-            username: username,
-            message: data.message
+            username,
+            message: data.message ? String(data.message).slice(0, 4096) : '',
+            html:    data.html    ? String(data.html).slice(0, 65536)    : null,
+            msgId:   data.msgId   ? String(data.msgId).slice(0, 64)      : null,
+        });
+    });
+
+    // handler for file/image transfers (base64, max ~5 MB)
+    socket.on('file-message', (data) => {
+        const username = socket.request.session.username;
+        if (!data.roomId) return;
+        const dataStr = data.data ? String(data.data) : '';
+        if (dataStr.length > 7 * 1024 * 1024) return; // reject oversized payloads
+        io.in(data.roomId).emit('file-message', {
+            username,
+            filename: String(data.filename  || 'file').slice(0, 255),
+            mimeType: String(data.mimeType  || 'application/octet-stream').slice(0, 100),
+            data: dataStr,
+            size: Number(data.size) || 0,
+            msgId:   data.msgId ? String(data.msgId).slice(0, 64) : null,
+        });
+    });
+
+    // handler for message reactions (👍 toggle)
+    socket.on('react-message', (data) => {
+        const username = socket.request.session.username;
+        const { roomId, msgId, emoji } = data;
+        if (!roomId || !msgId || !emoji) return;
+        const safeId = String(msgId).slice(0, 64);
+
+        if (!messageReactions.has(roomId)) messageReactions.set(roomId, new Map());
+        const roomRx = messageReactions.get(roomId);
+        if (!roomRx.has(safeId)) roomRx.set(safeId, new Set());
+        const likers = roomRx.get(safeId);
+
+        if (likers.has(username)) likers.delete(username);
+        else likers.add(username);
+
+        io.in(roomId).emit('message-reaction', {
+            msgId: safeId,
+            emoji,
+            count: likers.size,
+            likedBy: [...likers],
         });
     });
 
