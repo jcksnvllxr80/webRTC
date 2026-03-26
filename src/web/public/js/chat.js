@@ -251,7 +251,23 @@ function startEdit(msgId) {
     const originalHtml = body.innerHTML;
     const plainText = body.innerText.trim();
 
+    // Capture any embedded images (GIFs, inline images) so we can re-attach after save
+    const imageSrcs = Array.from(body.querySelectorAll('img')).map(img => img.src);
+
     body.innerHTML = '';
+
+    // Show images as a read-only preview above the textarea while editing
+    if (imageSrcs.length) {
+        const preview = document.createElement('div');
+        preview.className = 'msg-edit-img-preview';
+        for (const src of imageSrcs) {
+            const img = document.createElement('img');
+            img.src = src;
+            img.className = 'msg-edit-preview-img';
+            preview.appendChild(img);
+        }
+        body.appendChild(preview);
+    }
 
     const ta = document.createElement('textarea');
     ta.className = 'msg-edit-input';
@@ -280,8 +296,8 @@ function startEdit(msgId) {
 
     function save() {
         const newText = ta.value.trim();
-        if (newText && newText !== plainText) {
-            socket.emit('edit-message', { roomId: state.roomId, msgId, text: newText });
+        if (newText && (newText !== plainText || imageSrcs.length)) {
+            socket.emit('edit-message', { roomId: state.roomId, msgId, text: newText, images: imageSrcs });
         } else {
             cancel();
         }

@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.8.4 — 2026-03-26
+
+### Fix: GIFs preserved when editing messages
+
+- Editing a message that contained a GIF or inline image no longer drops the image
+- Images are captured before the edit textarea opens, re-sent alongside the edited text, and reattached by the server when broadcasting the update
+
+---
+
 ## v0.8.3 — 2026-03-26
 
 ### Edit & Delete Messages

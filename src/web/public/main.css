@@ -771,6 +771,18 @@ body.enlarged #user-2{
 .msg-ctrl-delete:hover{ background: rgba(244,67,71,0.15); }
 
 /* Inline edit */
+.msg-edit-img-preview{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+.msg-edit-preview-img{
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: var(--radius-sm);
+    opacity: 0.85;
+}
 .msg-edit-input{
     width: 100%;
     box-sizing: border-box;

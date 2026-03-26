@@ -371,7 +371,15 @@ io.on('connection', (socket) => {
         const safeId = String(msgId).slice(0, 64);
         if (messageOwners.get(roomId)?.get(safeId) !== username) return;
         const text = String(data.text || '').slice(0, 4096);
-        const html = '<p>' + text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'</p><p>') + '</p>';
+        let html = '<p>' + text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'</p><p>') + '</p>';
+        // Re-attach any images (GIFs, inline images) that were in the original message
+        const rawImages = Array.isArray(data.images) ? data.images : [];
+        for (const src of rawImages.slice(0, 10)) {
+            const s = String(src);
+            if (s.startsWith('data:image/') || s.startsWith('https://')) {
+                html += `<img src="${s.replace(/"/g, '&quot;')}" style="max-width:100%">`;
+            }
+        }
         io.in(roomId).emit('message-edited', { msgId: safeId, text, html });
     });
 
