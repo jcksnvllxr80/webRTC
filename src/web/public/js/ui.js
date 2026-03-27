@@ -110,10 +110,12 @@ export function setupUIListeners() {
         remoteVideo.addEventListener('enterpictureinpicture', () => {
             popoutBtn.querySelector('svg path').setAttribute('d', EXIT_PIP_ICON);
             popoutBtn.title = 'Exit pop out';
+            document.getElementById('remote-wrapper').classList.add('pip-active');
         });
         remoteVideo.addEventListener('leavepictureinpicture', () => {
             popoutBtn.querySelector('svg path').setAttribute('d', PIP_ICON);
             popoutBtn.title = 'Pop out';
+            document.getElementById('remote-wrapper').classList.remove('pip-active');
         });
     } else {
         popoutBtn.style.display = 'none';

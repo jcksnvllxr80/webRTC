@@ -142,7 +142,7 @@ body{
     min-height: 0;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
+    overflow: hidden;
 }
 
 .lobby-hero{
@@ -677,6 +677,10 @@ video{
 /* When local preview is hidden — remote video takes full width */
 #videos.local-hidden{ grid-template-columns: 1fr; }
 #videos.local-hidden #local-wrapper{ display: none; }
+
+/* When remote video is popped out to PiP — collapse its space */
+#remote-wrapper.pip-active{ display: none; }
+#videos:has(#remote-wrapper.pip-active){ grid-template-columns: 1fr; }
 
 /* ── Remote video wrapper ── */
 #remote-wrapper{

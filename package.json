@@ -1,7 +1,7 @@
 {
-  "name": "webrtc",
-  "version": "0.9.2",
-  "description": "A little WebRTC sample project with hosted https server\n",
+  "name": "freertc",
+  "version": "0.10.0",
+  "description": "FreeRTC — self-hosted peer-to-peer video, audio, and chat\n",
   "main": "src/desktop/main.js",
   "scripts": {
     "start": "node src/server/index.js",
@@ -31,7 +31,7 @@
   },
   "build": {
     "appId": "com.yourapp.webrtc",
-    "productName": "WebRTC Desktop",
+    "productName": "FreeRTC",
     "npmRebuild": false,
     "files": [
       "src/desktop/**/*"

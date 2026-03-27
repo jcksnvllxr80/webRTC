@@ -1,5 +1,13 @@
 # Release Notes
 
+## v0.10.0 — 2026-03-27
+
+### Chore: rebrand to FreeRTC
+
+- Renamed app from "WebRTC" to "FreeRTC" across all user-facing surfaces: page titles, header, desktop window title, Electron `productName`, and `package.json` name/description
+
+---
+
 ## v0.9.2 — 2026-03-27
 
 ### Feat: screen share audio, remote mute, local preview minimize, PiP popout

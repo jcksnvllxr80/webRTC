@@ -82,7 +82,7 @@ function createMainWindow() {
             contextIsolation: true,
             preload: path.join(__dirname, 'preload.js')
         },
-        title: 'WebRTC Desktop Client',
+        title: 'FreeRTC',
         show: false
     });
 
