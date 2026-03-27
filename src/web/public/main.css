@@ -531,6 +531,7 @@ body{
 #video-section{
     padding: var(--sp-sm) var(--sp-md) 0;
     flex-shrink: 0;
+    overflow: hidden;
 }
 
 /* ── Panel resize handle ── */
@@ -562,7 +563,7 @@ body{
 
 #videos{
     display: grid;
-    grid-template-columns: 1fr 1.5fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
     gap: var(--sp-sm);
     width: 100%;
 }
@@ -639,6 +640,8 @@ video{
 /* ── Remote video wrapper ── */
 #remote-wrapper{
     position: relative;
+    min-height: 0;
+    overflow: hidden;
 }
 
 #remote-controls{
@@ -746,6 +749,9 @@ body.enlarged #user-2{
     flex: 1;
     min-height: 260px;
     overflow: hidden;
+    position: relative;
+    z-index: 1;
+    background: var(--c-surface);
 }
 
 #call-friends{

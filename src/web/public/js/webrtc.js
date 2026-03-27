@@ -217,8 +217,18 @@ export function setupSignalingListeners() {
     });
 
     socket.on('participant-updated', (socketId, data) => {
+        const prev = state.participants.get(socketId);
+        const hadVideo = prev?.media?.video || prev?.media?.screen;
+        const hasVideo = data.media?.video || data.media?.screen;
+
         state.participants.set(socketId, data);
         renderParticipants();
+
+        // When a remote peer stops all video/screen, clear the video element
+        // immediately rather than waiting for WebRTC track events (which are unreliable).
+        if (socketId !== socket.id && hadVideo && !hasVideo) {
+            document.getElementById('user-2').srcObject = null;
+        }
     });
 
     socket.emit('join-room', state.roomId, socket.id);

@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.9.0 — 2026-03-26
+
+### Fix: video/chat split resize bug (video bleed-through)
+
+- Resizer handle now clamps the video section between a sensible minimum and maximum based on available room UI height
+- `#video-section` now uses `overflow: hidden` and `#videos` uses `min-height: 0` with `minmax(0, ...)` grid columns so remote/local video is clipped and never overlays the bottom panel
+- Fixed PiP preview sizing so it remains independent of the splitter rule
+
+---
+
 ## v0.8.9 — 2026-03-26
 
 ### Fix: peer lifecycle, remote video on restart, desktop connection UX
