@@ -68,13 +68,21 @@ export function ensurePeerConnection() {
     };
 }
 
+// ISSUE-002: guard createOffer with makingOffer to prevent race with onnegotiationneeded
 export async function createOffer() {
+    if (makingOffer) return;
     ensurePeerConnection();
 
-    const offer = await state.peerConnection.createOffer();
-    await state.peerConnection.setLocalDescription(offer);
-
-    socket.emit('offer', offer, state.roomId);
+    try {
+        makingOffer = true;
+        const offer = await state.peerConnection.createOffer();
+        await state.peerConnection.setLocalDescription(offer);
+        socket.emit('offer', offer, state.roomId);
+    } catch (err) {
+        console.error('createOffer error:', err);
+    } finally {
+        makingOffer = false;
+    }
 }
 
 export async function createAnswer(offer) {
@@ -84,7 +92,11 @@ export async function createAnswer(offer) {
 
     // Add any ICE candidates that arrived before the remote description was set
     for (const candidate of pendingCandidates) {
-        await state.peerConnection.addIceCandidate(candidate);
+        try {
+            await state.peerConnection.addIceCandidate(candidate); // ISSUE-004
+        } catch (err) {
+            console.warn('addIceCandidate (buffered) failed:', err);
+        }
     }
     pendingCandidates = [];
 
@@ -141,7 +153,11 @@ export function setupSignalingListeners() {
             await state.peerConnection.setRemoteDescription(answer);
             // Drain any ICE candidates buffered before remote description arrived
             for (const candidate of pendingCandidates) {
-                await state.peerConnection.addIceCandidate(candidate);
+                try {
+                    await state.peerConnection.addIceCandidate(candidate); // ISSUE-004
+                } catch (err) {
+                    console.warn('addIceCandidate (buffered answer) failed:', err);
+                }
             }
             pendingCandidates = [];
         }
@@ -150,18 +166,22 @@ export function setupSignalingListeners() {
     socket.on('ice-candidate', async (candidate) => {
         if (state.peerConnection) {
             if (state.peerConnection.remoteDescription) {
-                await state.peerConnection.addIceCandidate(candidate);
+                try {
+                    await state.peerConnection.addIceCandidate(candidate); // ISSUE-004
+                } catch (err) {
+                    console.warn('addIceCandidate failed:', err);
+                }
             } else {
                 pendingCandidates.push(candidate);
             }
         }
     });
 
-    socket.on('user-stopped-stream', (stoppedUserId) => {
-        const remoteVideo = document.getElementById('user-2');
-        if (remoteVideo.getAttribute('data-sender-id') === stoppedUserId) {
-            remoteVideo.srcObject = null;
-        }
+    // ISSUE-003: data-sender-id was never set on #user-2, so the old check always
+    // returned false and the remote video was never cleared. In a 2-person room the
+    // only remote video is always from the one other person — clear unconditionally.
+    socket.on('user-stopped-stream', () => {
+        document.getElementById('user-2').srcObject = null;
     });
 
     socket.on('room-full', () => {
@@ -171,11 +191,22 @@ export function setupSignalingListeners() {
 
     // Participant tracking
     socket.on('room-participants', (participants) => {
+        const hadRemotePeer = state.participants.size > 1 ||
+            [...state.participants.keys()].some(sid => sid !== socket.id);
+
         state.participants.clear();
         for (const [sid, data] of Object.entries(participants)) {
             state.participants.set(sid, data);
         }
         renderParticipants();
+
+        // ISSUE-001: if we had a remote peer and they're now gone, tear down the
+        // peer connection so the next user-connected can start a clean negotiation.
+        const hasRemotePeer = [...state.participants.keys()].some(sid => sid !== socket.id);
+        if (hadRemotePeer && !hasRemotePeer && state.peerConnection) {
+            console.log('Remote peer left — closing peer connection');
+            closePeerConnection();
+        }
     });
 
     socket.on('participant-updated', (socketId, data) => {

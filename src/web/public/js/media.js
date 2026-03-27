@@ -221,6 +221,17 @@ export async function reapplyAudioSettings() {
 
     const newTrack = newStream.getAudioTracks()[0];
 
+    // ISSUE-005: if leaveAudio() ran while getUserMedia was in flight, state.audioStream
+    // was nulled out. Stop the new stream to prevent a ghost microphone and bail.
+    if (state.audioStream !== null && state.audioStream.getAudioTracks()[0] !== oldTrack) {
+        newStream.getTracks().forEach(t => t.stop());
+        return;
+    }
+    if (!state.audioStream) {
+        newStream.getTracks().forEach(t => t.stop());
+        return;
+    }
+
     // Swap the track in the peer connection sender (if connected)
     if (state.peerConnection) {
         const sender = state.peerConnection.getSenders().find(s => s.track === oldTrack);
