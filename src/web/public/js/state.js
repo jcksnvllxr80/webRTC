@@ -12,6 +12,7 @@ export const state = {
     media: { audio: false, video: false, screen: false },
     participants: new Map(),   // socketId -> { username, media }
     audioStream: null,         // mic-only stream (separate from localStream which holds video)
+    screenAudioSender: null,   // RTCRtpSender for screen-share audio track (if any)
     audioSettings: loadAudioSettings()
 };
 

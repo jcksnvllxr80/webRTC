@@ -1,5 +1,5 @@
 import { state, socket } from './state.js';
-import { ensurePeerConnection, addVideoTrack, removeVideoTracks, closePeerConnection } from './webrtc.js';
+import { ensurePeerConnection, addVideoTrack, addTrackGetSender, removeVideoTracks, removeScreenAudioTrack, closePeerConnection } from './webrtc.js';
 import { updateControlsForMediaState } from './room.js';
 
 function formatMediaError(prefix, error) {
@@ -158,10 +158,24 @@ export async function shareScreen() {
             const source = await window.electronAPI.pickDisplaySource();
             if (!source) return;
 
-            newStream = await navigator.mediaDevices.getUserMedia({
-                audio: false,
-                video: getElectronDesktopConstraints(source.id)
-            });
+            // Try capturing system audio alongside video; fall back to video-only
+            // if the platform doesn't support it (e.g. macOS without permissions).
+            try {
+                newStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        mandatory: {
+                            chromeMediaSource: 'desktop',
+                            chromeMediaSourceId: source.id
+                        }
+                    },
+                    video: getElectronDesktopConstraints(source.id)
+                });
+            } catch (_audioErr) {
+                newStream = await navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: getElectronDesktopConstraints(source.id)
+                });
+            }
         } else {
             newStream = await navigator.mediaDevices.getDisplayMedia({
                 video: getVideoConstraints(),
@@ -181,6 +195,12 @@ export async function shareScreen() {
             });
         }
 
+        // Transmit screen audio if the capture included an audio track.
+        const screenAudioTrack = state.localStream.getAudioTracks()[0];
+        if (screenAudioTrack) {
+            state.screenAudioSender = addTrackGetSender(screenAudioTrack, state.localStream);
+        }
+
         state.media.screen = true;
         broadcastMediaState();
     } catch (error) {
@@ -197,6 +217,8 @@ export function stopVideo() {
         state.localStream = null;
         removeVideoTracks();
     }
+
+    removeScreenAudioTrack();
 
     state.media.video = false;
     state.media.screen = false;

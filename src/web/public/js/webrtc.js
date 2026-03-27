@@ -28,12 +28,21 @@ export function ensurePeerConnection() {
 
     state.peerConnection.ontrack = (event) => {
         event.streams[0].getTracks().forEach((track) => {
-            // Remove any stale tracks of the same kind so ended/dead tracks don't
-            // linger and hide the new live track.
-            state.remoteStream.getTracks()
-                .filter(t => t.kind === track.kind && t.id !== track.id)
-                .forEach(t => state.remoteStream.removeTrack(t));
-            state.remoteStream.addTrack(track);
+            if (track.kind === 'video') {
+                // Only one video source at a time — remove any stale video tracks.
+                state.remoteStream.getTracks()
+                    .filter(t => t.kind === 'video' && t.id !== track.id)
+                    .forEach(t => state.remoteStream.removeTrack(t));
+            } else {
+                // For audio, keep all live tracks; only purge ended ones to avoid
+                // accumulation (mic + screen audio can coexist).
+                state.remoteStream.getTracks()
+                    .filter(t => t.kind === 'audio' && t.readyState === 'ended' && t.id !== track.id)
+                    .forEach(t => state.remoteStream.removeTrack(t));
+            }
+            if (!state.remoteStream.getTrackById(track.id)) {
+                state.remoteStream.addTrack(track);
+            }
         });
         // srcObject may have been nulled by user-stopped-stream; always reassign.
         document.getElementById('user-2').srcObject = state.remoteStream;
@@ -118,6 +127,21 @@ export function addVideoTrack(track, stream) {
     state.peerConnection.addTrack(track, stream);
 }
 
+export function addTrackGetSender(track, stream) {
+    if (!state.peerConnection) return null;
+    return state.peerConnection.addTrack(track, stream);
+}
+
+export function removeScreenAudioTrack() {
+    if (!state.peerConnection || !state.screenAudioSender) return;
+    try {
+        state.peerConnection.removeTrack(state.screenAudioSender);
+    } catch (e) {
+        console.warn('removeScreenAudioTrack:', e);
+    }
+    state.screenAudioSender = null;
+}
+
 export function removeVideoTracks() {
     if (!state.peerConnection) return;
     const senders = state.peerConnection.getSenders();
@@ -135,6 +159,7 @@ export function closePeerConnection() {
     }
     pendingCandidates = [];
     makingOffer = false;
+    state.screenAudioSender = null;
     state.remoteStream = null;
     document.getElementById('user-2').srcObject = null;
 }

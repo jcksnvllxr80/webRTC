@@ -637,6 +637,47 @@ video{
 #add-friend-btn:hover{ opacity: 0.85; }
 #add-friend-btn:disabled{ background: var(--c-elevated); color: var(--c-text-muted); cursor: default; opacity: 1; }
 
+/* ── Local video wrapper ── */
+#local-wrapper{
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+}
+#local-controls{
+    position: absolute;
+    top: var(--sp-sm);
+    right: var(--sp-sm);
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity var(--dur-short) ease-out;
+    z-index: 1;
+}
+#local-wrapper:hover #local-controls,
+#local-controls:focus-within{ opacity: 1; }
+#local-controls button{
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--dur-micro) ease-out;
+}
+#local-controls button:hover{ background: rgba(0,0,0,0.85); }
+#local-controls button:focus-visible{
+    outline: 2px solid var(--c-accent);
+    outline-offset: 2px;
+}
+
+/* When local preview is hidden — remote video takes full width */
+#videos.local-hidden{ grid-template-columns: 1fr; }
+#videos.local-hidden #local-wrapper{ display: none; }
+
 /* ── Remote video wrapper ── */
 #remote-wrapper{
     position: relative;

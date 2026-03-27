@@ -1,5 +1,28 @@
 # Release Notes
 
+## v0.9.2 — 2026-03-27
+
+### Feat: screen share audio, remote mute, local preview minimize, PiP popout
+
+**Screen share audio**
+- Screen share now transmits audio to the remote peer — browser captures system/tab audio via `getDisplayMedia`; Electron tries `chromeMediaSource: 'desktop'` audio and silently falls back to video-only if the platform doesn't support it
+- Mic and screen audio coexist as independent tracks; `ontrack` handler updated to only replace stale video tracks, not active audio tracks — mic is no longer silenced when screen audio arrives
+- Screen audio sender is tracked in `state.screenAudioSender` and removed cleanly when screen share stops
+
+**Remote audio mute**
+- Mute button (speaker icon) added to the remote video overlay controls — toggles local playback of all remote audio (mic + screen audio) without affecting their outgoing stream
+- Icon switches to a muted-speaker when active; button title and aria-label update accordingly
+
+**Local preview minimize / restore**
+- Minimize button (chevron) on the local video overlay collapses the preview to give more space to chat; a "Preview" restore button appears in the controls bar
+- State persists across page reloads via localStorage
+
+**Remote video PiP popout**
+- Popout button on the remote video overlay opens the incoming stream in a floating Picture-in-Picture window
+- Button icon and title reflect current PiP state; button hidden automatically on browsers that don't support PiP
+
+---
+
 ## v0.9.1 — 2026-03-27
 
 ### Fix: camera/screen share error, frozen remote video, resize bleed-through
