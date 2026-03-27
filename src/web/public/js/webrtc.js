@@ -28,8 +28,15 @@ export function ensurePeerConnection() {
 
     state.peerConnection.ontrack = (event) => {
         event.streams[0].getTracks().forEach((track) => {
+            // Remove any stale tracks of the same kind so ended/dead tracks don't
+            // linger and hide the new live track.
+            state.remoteStream.getTracks()
+                .filter(t => t.kind === track.kind && t.id !== track.id)
+                .forEach(t => state.remoteStream.removeTrack(t));
             state.remoteStream.addTrack(track);
         });
+        // srcObject may have been nulled by user-stopped-stream; always reassign.
+        document.getElementById('user-2').srcObject = state.remoteStream;
     };
 
     state.peerConnection.onicecandidate = (event) => {
@@ -177,11 +184,11 @@ export function setupSignalingListeners() {
         }
     });
 
-    // ISSUE-003: data-sender-id was never set on #user-2, so the old check always
-    // returned false and the remote video was never cleared. In a 2-person room the
-    // only remote video is always from the one other person — clear unconditionally.
+    // When the remote side stops all media, reset the remote stream to a clean empty
+    // MediaStream so incoming tracks from the next start-up land in a fresh container.
     socket.on('user-stopped-stream', () => {
-        document.getElementById('user-2').srcObject = null;
+        state.remoteStream = new MediaStream();
+        document.getElementById('user-2').srcObject = state.remoteStream;
     });
 
     socket.on('room-full', () => {

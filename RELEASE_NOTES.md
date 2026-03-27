@@ -1,5 +1,28 @@
 # Release Notes
 
+## v0.8.9 — 2026-03-26
+
+### Fix: peer lifecycle, remote video on restart, desktop connection UX
+
+**Peer connection lifecycle**
+- Peer connection is now torn down when the remote participant leaves the room, so rejoining always starts a clean negotiation instead of reusing a stale/failed connection
+- `createOffer()` guarded by `makingOffer` flag to prevent race with `onnegotiationneeded` — eliminates a source of video freezing when both sides try to renegotiate simultaneously
+- All `addIceCandidate` calls wrapped in try/catch so stale candidates from a previous session no longer crash the ICE handler
+- `reapplyAudioSettings` now guards against a race with `leaveAudio` — prevents a ghost microphone staying active after the user leaves audio
+- `user-stopped-stream` handler fixed: `data-sender-id` attribute was never set so remote video was never cleared; now clears unconditionally
+
+**Remote video after stop/restart**
+- Stopping a stream and restarting it now correctly shows on the remote side — `user-stopped-stream` was clearing `srcObject` but leaving `state.remoteStream` intact, so incoming tracks from the restart were invisible
+- Stale ended tracks no longer accumulate in `state.remoteStream`; incoming tracks replace old ones of the same kind
+
+**Desktop connection window**
+- Inputs and button are disabled while a connection attempt is in progress, preventing double-submit
+- Inputs are always re-enabled after a failed attempt (previously they could get stuck non-interactive)
+- Error shown inline instead of `alert()` — the native alert was dropping focus after dismissal, making fields appear unresponsive
+- IP field is auto-focused and selected on error for quick retry
+
+---
+
 ## v0.8.8 — 2026-03-26
 
 ### Fix: WebRTC stability, audio filters, screenshot paste, image lightbox
