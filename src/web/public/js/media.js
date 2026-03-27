@@ -106,21 +106,26 @@ export function leaveAudio() {
 // Start camera — video only, independent of audio
 export async function initCamera() {
     try {
-        // Stop any existing video/screen
+        // Stop any existing video/screen and clear state.localStream BEFORE
+        // ensurePeerConnection() so it doesn't pre-add tracks that addVideoTrack()
+        // will try to add again (InvalidAccessError: sender already exists).
         if (state.localStream) {
             state.localStream.getTracks().forEach(t => t.stop());
             removeVideoTracks();
             state.media.screen = false;
         }
+        state.localStream = null;
 
-        state.localStream = await navigator.mediaDevices.getUserMedia({
+        ensurePeerConnection();
+
+        const newStream = await navigator.mediaDevices.getUserMedia({
             video: getVideoConstraints(),
             audio: false
         });
 
+        state.localStream = newStream;
         document.getElementById('user-1').srcObject = state.localStream;
 
-        ensurePeerConnection();
         const videoTrack = state.localStream.getVideoTracks()[0];
         if (videoTrack) {
             addVideoTrack(videoTrack, state.localStream);
@@ -137,31 +142,36 @@ export async function initCamera() {
 // Share screen — independent of audio
 export async function shareScreen() {
     try {
-        // Stop any existing video/screen
+        // Same ordering fix as initCamera: clear state.localStream before
+        // ensurePeerConnection() to prevent the double-addTrack error.
         if (state.localStream) {
             state.localStream.getTracks().forEach(t => t.stop());
             removeVideoTracks();
             state.media.video = false;
         }
+        state.localStream = null;
 
+        ensurePeerConnection();
+
+        let newStream;
         if (isElectronDesktop()) {
             const source = await window.electronAPI.pickDisplaySource();
             if (!source) return;
 
-            state.localStream = await navigator.mediaDevices.getUserMedia({
+            newStream = await navigator.mediaDevices.getUserMedia({
                 audio: false,
                 video: getElectronDesktopConstraints(source.id)
             });
         } else {
-            state.localStream = await navigator.mediaDevices.getDisplayMedia({
+            newStream = await navigator.mediaDevices.getDisplayMedia({
                 video: getVideoConstraints(),
                 audio: true
             });
         }
 
+        state.localStream = newStream;
         document.getElementById('user-1').srcObject = state.localStream;
 
-        ensurePeerConnection();
         const videoTrack = state.localStream.getVideoTracks()[0];
         if (videoTrack) {
             addVideoTrack(videoTrack, state.localStream);

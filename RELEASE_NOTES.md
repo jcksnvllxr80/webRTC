@@ -1,5 +1,22 @@
 # Release Notes
 
+## v0.9.1 — 2026-03-27
+
+### Fix: camera/screen share error, frozen remote video, resize bleed-through
+
+**Camera / screen share**
+- Fixed "InvalidAccessError: A sender already exists for the track" on every camera/screen start — `state.localStream` was assigned before `ensurePeerConnection()` ran, so a newly created peer connection would add the track, then `addVideoTrack()` tried to add it again; fixed by nulling `state.localStream` first so the PC starts clean, then adding the track once explicitly
+- Because the error threw before `state.media.video = true` was set, `broadcastMediaState()` never ran and the button stayed on "Start Camera" — this is also fixed by the above
+
+**Frozen remote video on stop**
+- Replaced unreliable WebRTC `mute` event listener with the `participant-updated` socket signal — when the remote peer stops video/screen, `broadcastMediaState()` fires immediately and the `participant-updated` handler now clears the remote video element; no dependency on browser track events
+
+**Resize handle**
+- Video section now uses `overflow: hidden` to clip video content when the handle is dragged up — videos stay underneath the panel instead of bleeding through
+- Removed `height: 100%; object-fit: cover` from `.video-player` and `flex: 1; align-items: stretch` from `#videos` — these caused the video grid to collapse or display at wrong proportions
+
+---
+
 ## v0.9.0 — 2026-03-26
 
 ### Fix: video/chat split resize bug (video bleed-through)
