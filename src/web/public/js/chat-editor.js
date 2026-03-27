@@ -33999,19 +33999,64 @@ function createChatEditor({ editableEl, onSubmit }) {
   }
   function interceptPaste(event) {
     const items = event.clipboardData?.items;
-    if (!items) return false;
-    for (const item of items) {
-      if (item.type.startsWith("image/")) {
-        const file = item.getAsFile();
-        if (file) {
+    if (items) {
+      for (const item of items) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) {
+            event.preventDefault();
+            insertImageFile(file);
+            return true;
+          }
+        }
+      }
+    }
+    const files = event.clipboardData?.files;
+    if (files?.length) {
+      for (const file of files) {
+        if (file.type.startsWith("image/")) {
           event.preventDefault();
           insertImageFile(file);
           return true;
         }
       }
     }
+    if (navigator.clipboard?.read) {
+      event.preventDefault();
+      navigator.clipboard.read().then((clipItems) => {
+        for (const ci of clipItems) {
+          const imgType = ci.types.find((t) => t.startsWith("image/"));
+          if (imgType) {
+            ci.getType(imgType).then((blob) => {
+              insertImageFile(new File([blob], "screenshot.png", { type: imgType }));
+            });
+            return;
+          }
+        }
+      }).catch(() => {
+      });
+      return true;
+    }
     return false;
   }
+  document.addEventListener("paste", (e) => {
+    const active = document.activeElement;
+    if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) return;
+    if (editableEl.contains(active) || editableEl.contains(document.activeElement)) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          editor.commands.focus();
+          insertImageFile(file);
+          return;
+        }
+      }
+    }
+  });
   function interceptDrop(event) {
     const files = event.dataTransfer?.files;
     if (!files?.length) return false;

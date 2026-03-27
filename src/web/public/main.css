@@ -828,6 +828,43 @@ body.enlarged #user-2{
 .msg-ctrl-btn:hover{ opacity: 1; background: var(--c-elevated); }
 .msg-ctrl-delete:hover{ background: rgba(244,67,71,0.15); color: #f44347; }
 
+/* ── Image lightbox ── */
+#img-lightbox{
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+}
+#img-lightbox.open{ display: flex; }
+#img-lightbox-img{
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: var(--r-md);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.8);
+    cursor: default;
+}
+#img-lightbox-close{
+    position: fixed;
+    top: 16px;
+    right: 20px;
+    background: var(--c-overlay);
+    border: none;
+    color: var(--c-text);
+    font-size: 20px;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    z-index: 10000;
+}
+#img-lightbox-close:hover{ background: var(--c-border); }
+img.chat-inline-img{ cursor: zoom-in; }
+
 /* Inline edit */
 .msg-edit-img-preview{
     display: flex;

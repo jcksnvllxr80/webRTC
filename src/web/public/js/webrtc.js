@@ -38,11 +38,27 @@ export function ensurePeerConnection() {
         }
     };
 
+    // Monitor ICE connection health and trigger restart on failure/prolonged disconnect
+    state.peerConnection.oniceconnectionstatechange = () => {
+        const s = state.peerConnection?.iceConnectionState;
+        if (s === 'failed') {
+            console.warn('ICE failed — restarting');
+            state.peerConnection?.restartIce();
+        } else if (s === 'disconnected') {
+            setTimeout(() => {
+                if (state.peerConnection?.iceConnectionState === 'disconnected') {
+                    console.warn('ICE still disconnected after 3s — restarting');
+                    state.peerConnection?.restartIce();
+                }
+            }, 3000);
+        }
+    };
+
     state.peerConnection.onnegotiationneeded = async () => {
+        if (makingOffer) return;
         try {
             makingOffer = true;
-            const offer = await state.peerConnection.createOffer();
-            await state.peerConnection.setLocalDescription(offer);
+            await state.peerConnection.setLocalDescription();
             socket.emit('offer', state.peerConnection.localDescription, state.roomId);
         } catch (err) {
             console.error('Negotiation error:', err);
@@ -98,6 +114,8 @@ export function closePeerConnection() {
         state.peerConnection.close();
         state.peerConnection = null;
     }
+    pendingCandidates = [];
+    makingOffer = false;
     state.remoteStream = null;
     document.getElementById('user-2').srcObject = null;
 }
@@ -118,8 +136,14 @@ export function setupSignalingListeners() {
 
     socket.on('answer', async (answer) => {
         if (!state.peerConnection) return;
-        if (!state.peerConnection.currentRemoteDescription) {
+        const sigState = state.peerConnection.signalingState;
+        if (sigState === 'have-local-offer') {
             await state.peerConnection.setRemoteDescription(answer);
+            // Drain any ICE candidates buffered before remote description arrived
+            for (const candidate of pendingCandidates) {
+                await state.peerConnection.addIceCandidate(candidate);
+            }
+            pendingCandidates = [];
         }
     });
 

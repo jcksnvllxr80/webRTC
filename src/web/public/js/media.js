@@ -198,16 +198,42 @@ export function stopVideo() {
     }
 }
 
-// Re-apply audio settings to a live mic stream
+// Re-apply audio settings to a live mic stream.
+// Must acquire the new stream BEFORE stopping the old track to avoid a
+// silent gap that causes a static burst on the remote end.
 export async function reapplyAudioSettings() {
-    if (!state.audioStream) return; // no live audio, nothing to do
+    if (!state.audioStream) return;
 
-    const track = state.audioStream.getAudioTracks()[0];
-    if (!track) return;
+    const oldTrack = state.audioStream.getAudioTracks()[0];
+    if (!oldTrack) return;
 
-    // applyConstraints modifies the live track in-place — no interruption,
-    // no track replacement, no static burst on the remote end.
-    await track.applyConstraints(getAudioConstraints());
+    // Get a new stream with the updated constraints
+    let newStream;
+    try {
+        newStream = await navigator.mediaDevices.getUserMedia({
+            audio: getAudioConstraints(),
+            video: false
+        });
+    } catch (err) {
+        console.error('reapplyAudioSettings: getUserMedia failed', err);
+        return;
+    }
+
+    const newTrack = newStream.getAudioTracks()[0];
+
+    // Swap the track in the peer connection sender (if connected)
+    if (state.peerConnection) {
+        const sender = state.peerConnection.getSenders().find(s => s.track === oldTrack);
+        if (sender) {
+            await sender.replaceTrack(newTrack);
+        }
+    }
+
+    // Update the audioStream reference
+    state.audioStream = newStream;
+
+    // Now it's safe to stop the old track
+    oldTrack.stop();
 }
 
 // Legacy — stop everything

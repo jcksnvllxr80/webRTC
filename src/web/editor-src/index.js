@@ -187,16 +187,60 @@ export function createChatEditor({ editableEl, onSubmit }) {
 
   // ── Paste / drop ──
   function interceptPaste(event) {
+    // 1. items (standard browsers + most Electron builds)
     const items = event.clipboardData?.items;
-    if (!items) return false;
-    for (const item of items) {
-      if (item.type.startsWith('image/')) {
-        const file = item.getAsFile();
-        if (file) { event.preventDefault(); insertImageFile(file); return true; }
+    if (items) {
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) { event.preventDefault(); insertImageFile(file); return true; }
+        }
       }
+    }
+    // 2. files fallback (some Electron builds put images here instead)
+    const files = event.clipboardData?.files;
+    if (files?.length) {
+      for (const file of files) {
+        if (file.type.startsWith('image/')) {
+          event.preventDefault(); insertImageFile(file); return true;
+        }
+      }
+    }
+    // 3. Async Clipboard API fallback (Electron screenshots often land here)
+    if (navigator.clipboard?.read) {
+      event.preventDefault();
+      navigator.clipboard.read().then(clipItems => {
+        for (const ci of clipItems) {
+          const imgType = ci.types.find(t => t.startsWith('image/'));
+          if (imgType) {
+            ci.getType(imgType).then(blob => {
+              insertImageFile(new File([blob], 'screenshot.png', { type: imgType }));
+            });
+            return;
+          }
+        }
+      }).catch(() => {});
+      return true;
     }
     return false;
   }
+
+  // Document-level fallback: catches paste when editor isn't focused
+  document.addEventListener('paste', (e) => {
+    const active = document.activeElement;
+    // Skip if a real input/textarea has focus (let it handle its own paste)
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+    // Skip if editor already handled it via handlePaste
+    if (editableEl.contains(active) || editableEl.contains(document.activeElement)) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) { e.preventDefault(); editor.commands.focus(); insertImageFile(file); return; }
+      }
+    }
+  });
 
   function interceptDrop(event) {
     const files = event.dataTransfer?.files;

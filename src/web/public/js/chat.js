@@ -416,6 +416,26 @@ function addFileToChat(username, { filename, mimeType, data, size, msgId }) {
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
+// ── Image lightbox ──
+function setupImageLightbox() {
+    const overlay = document.createElement('div');
+    overlay.id = 'img-lightbox';
+    overlay.innerHTML = '<img id="img-lightbox-img"><button id="img-lightbox-close" aria-label="Close">✕</button>';
+    document.body.appendChild(overlay);
+
+    function close() { overlay.classList.remove('open'); }
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.querySelector('#img-lightbox-close').addEventListener('click', close);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+
+    document.getElementById('messages').addEventListener('click', (e) => {
+        const img = e.target.closest('img.chat-inline-img');
+        if (!img) return;
+        overlay.querySelector('#img-lightbox-img').src = img.src;
+        overlay.classList.add('open');
+    });
+}
+
 // ── File sending ──
 function sendFile(file, msgId) {
     const reader = new FileReader();
@@ -442,6 +462,7 @@ export function setupChatListeners() {
     if (!editableEl) return;
 
     setupReactionPicker();
+    setupImageLightbox();
 
     const result = createChatEditor({
         editableEl,

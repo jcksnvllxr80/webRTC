@@ -1,5 +1,28 @@
 # Release Notes
 
+## v0.8.8 — 2026-03-26
+
+### Fix: WebRTC stability, audio filters, screenshot paste, image lightbox
+
+**WebRTC stability**
+- ICE connection monitoring: automatically calls `restartIce()` on failure, and after 3 seconds of sustained disconnect
+- Fixed negotiation glare: `onnegotiationneeded` now uses a `makingOffer` guard and the modern `setLocalDescription()` (implicit offer) to prevent double-offer races
+- `closePeerConnection` now resets `pendingCandidates` and `makingOffer` so stale state from a previous session cannot pollute a new connection
+- Answer handler now checks `signalingState === 'have-local-offer'` (correct guard) and drains the ICE candidate buffer immediately after setting the remote description
+
+**Audio filters**
+- Fixed audio filter toggles (noise suppression, echo cancellation, AGC) doing nothing — `applyConstraints` cannot change capture-time constraints in Chrome/Electron; now acquires a new stream with the updated constraints first, `replaceTrack`s the sender while both tracks are live (no gap), updates the stream reference, then stops the old track — eliminates both the static burst and the silent gap
+
+**Screenshot paste**
+- Clipboard paste now uses a 3-level fallback: `clipboardData.items` → `clipboardData.files` → async `navigator.clipboard.read()` — covers the range of Electron builds that put screenshots in different places
+- Added document-level paste listener so screenshots paste into the chat even when the editor doesn't have focus
+
+**Image lightbox**
+- Clicking any inline chat image opens it in a full-screen lightbox overlay
+- Click outside or press Escape to dismiss
+
+---
+
 ## v0.8.7 — 2026-03-26
 
 ### Fix: audio static and layout improvements
