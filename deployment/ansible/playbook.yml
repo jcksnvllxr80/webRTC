@@ -32,6 +32,7 @@
         repo: https://github.com/jcksnvllxr80/FreeRTC.git
         dest: /opt/freertc
         version: master
+        force: yes
 
     - name: Copy secrets.json
       copy:
