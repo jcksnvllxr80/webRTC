@@ -1,5 +1,17 @@
 # Release Notes
 
+## v0.10.1 — 2026-03-27
+
+### Chore: app icon and license
+
+- Added non-commercial license — free to use, modify, and distribute; selling or charging for access is prohibited
+- Added white placeholder app icon (`favicon.svg`) shown in browser tabs and the app header
+- Favicon linked in all pages (index, login, register)
+- Electron taskbar and window title bar now show the icon; falls back to a white placeholder until `src/web/public/icon.png` is provided
+- electron-builder configured to pick up `icon.png/.ico/.icns` from `src/web/public/` for all platforms
+
+---
+
 ## v0.10.0 — 2026-03-27
 
 ### Chore: rebrand to FreeRTC

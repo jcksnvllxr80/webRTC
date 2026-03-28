@@ -94,6 +94,12 @@ body{
     border-bottom: 1px solid var(--c-border);
 }
 
+.app-logo{
+    width: 24px;
+    height: 24px;
+    margin-right: var(--sp-xs);
+}
+
 .app-title{
     font-size: var(--text-lg);
     font-weight: 700;

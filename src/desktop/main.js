@@ -1,6 +1,18 @@
-const { app, BrowserWindow, desktopCapturer, ipcMain, Menu, session } = require('electron');
+const { app, BrowserWindow, desktopCapturer, ipcMain, Menu, nativeImage, session } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const https = require('https');
+
+// Load icon from file when available, otherwise use a white placeholder
+const iconPath = path.join(__dirname, '../web/public/icon.png');
+const appIcon = fs.existsSync(iconPath)
+    ? nativeImage.createFromPath(iconPath)
+    : (() => {
+        // 32x32 white RGBA buffer
+        const size = 32;
+        const buf = Buffer.alloc(size * size * 4, 255); // all 0xFF = opaque white
+        return nativeImage.createFromBuffer(buf, { width: size, height: size });
+    })();
 
 let mainWindow = null;
 let connectionWindow = null;
@@ -63,6 +75,7 @@ function createConnectionWindow() {
             preload: path.join(__dirname, 'preload.js')
         },
         title: 'Connect to Server',
+        icon: appIcon,
         resizable: false,
         minimizable: false,
         maximizable: false,
@@ -83,6 +96,7 @@ function createMainWindow() {
             preload: path.join(__dirname, 'preload.js')
         },
         title: 'FreeRTC',
+        icon: appIcon,
         show: false
     });
 
