@@ -23,7 +23,8 @@ const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
 // Merge secrets.json if present (gitignored — put real API keys there)
 const SECRETS_PATH = path.join(ROOT_DIR, 'config', 'secrets.json');
 if (fs.existsSync(SECRETS_PATH)) Object.assign(config, JSON.parse(fs.readFileSync(SECRETS_PATH, 'utf8')));
-const PORT = process.env.PORT || config.port || 3000;
+const argPort = process.argv.find(a => a.startsWith('--port='))?.split('=')[1];
+const PORT = argPort || process.env.PORT || config.port || 3000;
 // Create the session middleware
 const sessionMiddleware = session({
     secret: 'your-secret-key',
@@ -160,6 +161,11 @@ app.get('/api/friends/check/:friendUsername', (req, res) => {
 
 app.get('/api/me', (req, res) => {
     res.json({ username: req.session.username });
+});
+
+app.get('/api/version', (req, res) => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf8'));
+    res.json({ version: pkg.version });
 });
 
 // ── GIPHY proxy endpoints (key stays server-side) ──

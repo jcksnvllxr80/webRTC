@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.10.2 — 2026-03-27
+
+### Feat: help menu and configurable server port
+
+- Help menu (`?` button in the header) shows the app version, a link to the documentation, and a link to the GitHub repository
+- Version is fetched live from a new `/api/version` endpoint so it always reflects the running build
+- Server port can now be set via CLI argument (`--port=8080`), in addition to the existing `PORT` env var and `config/server.json` — arg takes highest priority
+
+---
+
 ## v0.10.1 — 2026-03-27
 
 ### Chore: app icon and license

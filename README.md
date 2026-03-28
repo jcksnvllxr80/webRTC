@@ -1,6 +1,6 @@
-# WebRTC
+# FreeRTC
 
-A small WebRTC demo app served over HTTPS with login, registration, chat, friends, camera, screen sharing, and an Electron desktop client.
+A self-hosted, peer-to-peer video and audio calling app with rich text chat, screen sharing, friends, and an Electron desktop client — served over HTTPS with session-based authentication.
 
 ## Project Layout
 
@@ -173,7 +173,7 @@ After connecting, the desktop client opens the same login and room flow as the b
 
 ### Build the desktop app
 
-Building packages the Electron client into a standalone installer. The packaged app still requires a running WebRTC HTTPS server to connect to.
+Building packages the Electron client into a standalone installer. The packaged app still requires a running FreeRTC server to connect to.
 
 **Prerequisites:** The dev dependencies (`electron` and `electron-builder`) must be installed. They are included by default when you run the installer or `npm install`.
 
@@ -187,9 +187,9 @@ This produces platform-specific output in the `dist/` folder:
 
 | Platform | Target | Output |
 |----------|--------|--------|
-| Windows  | NSIS installer | `dist/WebRTC Desktop Setup x.x.x.exe` |
-| macOS    | DMG | `dist/WebRTC Desktop-x.x.x.dmg` |
-| Linux    | AppImage | `dist/WebRTC Desktop-x.x.x.AppImage` |
+| Windows  | NSIS installer | `dist/FreeRTC Setup x.x.x.exe` |
+| macOS    | DMG | `dist/FreeRTC-x.x.x.dmg` |
+| Linux    | AppImage | `dist/FreeRTC-x.x.x.AppImage` |
 
 **Build for a specific platform** (cross-compilation may require additional tooling):
 
@@ -226,7 +226,7 @@ Create the file if it doesn't exist:
 
 * `data/users.db` is created automatically the first time the app runs.
 * The server listens on `0.0.0.0`, so other devices on the same network can reach it.
-* The default port comes from `config/server.json`. You can also override it with the `PORT` environment variable before starting the server.
+* The default port comes from `config/server.json`. You can also override it with the `--port=` CLI argument or the `PORT` environment variable — argument takes highest priority.
 * The browser version will show a self-signed certificate warning the first time you connect.
 * This project uses public STUN servers and does not include a TURN server, so same-network testing is the simplest and most reliable setup.
 * Electron build output is written to the `dist` folder.
@@ -257,7 +257,3 @@ Desktop and editor build dependencies:
 * `electron`
 * `electron-builder`
 * `esbuild` — bundles the chat editor source
-
-## Inspired By
-
-* https://medium.com/agora-io/how-does-webrtc-work-996748603141
