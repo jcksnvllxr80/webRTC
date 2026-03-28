@@ -1,5 +1,17 @@
 # Release Notes
 
+## v0.10.3 — 2026-03-27
+
+### Fix: icon, header cleanup, help menu, minimize button
+
+- App icon now loads from `src/web/public/icon.png/.ico/.icns` — served by the web server and referenced by Electron at runtime and build time
+- macOS dock icon fixed via `app.dock.setIcon()`
+- Removed logo and title from the app header — already present in the OS title bar
+- Help menu moved to the native menu bar (alongside Connection and Edit) with version number, Documentation, and GitHub Repository links
+- Local video minimize button moved back to the left side of the preview
+
+---
+
 ## v0.10.2 — 2026-03-27
 
 ### Feat: help menu and configurable server port

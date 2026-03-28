@@ -1,4 +1,4 @@
-const { app, BrowserWindow, desktopCapturer, ipcMain, Menu, nativeImage, session } = require('electron');
+const { app, BrowserWindow, desktopCapturer, ipcMain, Menu, nativeImage, session, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -38,6 +38,8 @@ function createMenu() {
         });
     }
 
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8'));
+
     template.push(
         {
             label: 'Connection',
@@ -58,6 +60,24 @@ function createMenu() {
                 { role: 'copy' },
                 { role: 'paste' },
                 { role: 'selectAll' }
+            ]
+        },
+        {
+            label: 'Help',
+            submenu: [
+                {
+                    label: `FreeRTC v${pkg.version}`,
+                    enabled: false
+                },
+                { type: 'separator' },
+                {
+                    label: 'Documentation',
+                    click: () => shell.openExternal('https://github.com/jcksnvllxr80/FreeRTC#readme')
+                },
+                {
+                    label: 'GitHub Repository',
+                    click: () => shell.openExternal('https://github.com/jcksnvllxr80/FreeRTC')
+                }
             ]
         }
     );
@@ -259,6 +279,9 @@ ipcMain.handle('pick-display-source', async () => {
 });
 
 app.whenReady().then(() => {
+    if (process.platform === 'darwin' && app.dock) {
+        app.dock.setIcon(appIcon);
+    }
     configureDesktopPermissions();
     createMenu();
     createConnectionWindow();

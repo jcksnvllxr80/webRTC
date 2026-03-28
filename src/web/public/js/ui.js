@@ -16,22 +16,6 @@ export function setupUIListeners() {
         })
         .catch(() => {});
 
-    // Help menu
-    const helpBtn = document.getElementById('help-btn');
-    const helpMenu = document.getElementById('help-menu');
-    fetch('/api/version')
-        .then(r => r.json())
-        .then(data => {
-            const el = document.getElementById('help-version');
-            if (el && data.version) el.textContent = data.version;
-        })
-        .catch(() => {});
-    helpBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        helpMenu.hidden = !helpMenu.hidden;
-    });
-    document.addEventListener('click', () => { helpMenu.hidden = true; });
-
     // Logout
     document.getElementById('logout-btn').addEventListener('click', () => {
         fetch('/logout', { method: 'POST' })
