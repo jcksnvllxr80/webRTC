@@ -1,5 +1,23 @@
 # Release Notes
 
+## v0.13.1 — 2026-03-28
+
+### Chore: GitHub Actions CI/CD, README deployment docs
+
+**GitHub Actions**
+- New `.github/workflows/docker.yml` builds and publishes the Docker image to `ghcr.io` on every push to `master`
+- PRs trigger a build-only run (no push) to catch broken Dockerfiles before merge
+- Uses GHA layer cache for fast repeat builds
+- `docker-compose.yml` updated to pull the pre-built image from `ghcr.io` instead of building on the server — faster deploys, no build toolchain needed on EC2
+
+**README**
+- Deployment section now covers the full GitHub → ghcr.io → server update flow
+- Added note on setting the package to public visibility after first push
+- Added note for forks to update the image name in `docker-compose.yml`
+- Expanded Terraform and Ansible prerequisites with tool install instructions, IAM setup steps, key pair permissions, and domain timing guidance
+
+---
+
 ## v0.13.0 — 2026-03-28
 
 ### Feat: full AWS deployment stack, TURN support, Electron auto-connect

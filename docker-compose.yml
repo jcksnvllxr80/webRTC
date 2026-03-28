@@ -1,7 +1,7 @@
 services:
 
   freertc:
-    build: .
+    image: ghcr.io/jcksnvllxr80/freertc:latest
     ports:
       - "8001:8001"
     volumes:
