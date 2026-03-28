@@ -31,10 +31,16 @@ export function saveAudioSettings() {
 
 export const servers = {
     iceServers: [
-        {
-            urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302']
-        }
+        { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
     ]
 };
+
+export async function loadRtcConfig() {
+    try {
+        const res = await fetch('/api/rtc-config');
+        const { iceServers } = await res.json();
+        if (iceServers) servers.iceServers = iceServers;
+    } catch { /* fall back to STUN only */ }
+}
 
 export const socket = io(window.location.origin);

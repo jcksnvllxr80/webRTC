@@ -5,7 +5,10 @@ import { setupUIListeners } from './ui.js';
 import { setupFriendsListeners } from './friends.js';
 import { setupRoomUI, isInRoom } from './room.js';
 import { showOnboarding } from './onboarding.js';
-import { state, saveAudioSettings } from './state.js';
+import { state, saveAudioSettings, loadRtcConfig } from './state.js';
+
+// Load TURN config from server before anything that creates a peer connection
+await loadRtcConfig();
 
 // Always set up room UI (lobby or call view)
 setupRoomUI();

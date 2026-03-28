@@ -1,0 +1,20 @@
+services:
+
+  freertc:
+    build: .
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./certs:/app/certs:ro
+      - ./config:/app/config:ro
+      - ./data:/app/data
+    restart: unless-stopped
+    depends_on:
+      - coturn
+
+  coturn:
+    image: coturn/coturn:latest
+    network_mode: host
+    volumes:
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+    restart: unless-stopped

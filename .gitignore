@@ -1,4 +1,6 @@
-node_modules
+node_modules/
+dist/
+data/
 config/secrets.json
 certs/*
 !certs/.gitkeep
@@ -11,3 +13,10 @@ claudeignore
 codexignore
 dist
 .gstack/
+ansible/inventory.ini
+ansible/vars.yml
+terraform/terraform.tfvars
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl

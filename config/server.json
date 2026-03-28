@@ -1,3 +1,6 @@
 {
-  "port": 8001
+  "port": 8001,
+  "turnUrl": "",
+  "turnUser": "",
+  "turnCredential": ""
 }

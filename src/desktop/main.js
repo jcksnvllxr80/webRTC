@@ -15,6 +15,13 @@ const appIcon = fs.existsSync(iconPath)
         return nativeImage.createFromBuffer(buf, { width: size, height: size });
     })();
 
+// Load client config (serverUrl)
+const clientConfigPath = path.join(__dirname, '../../config/client.json');
+const clientConfig = (() => {
+    try { return JSON.parse(fs.readFileSync(clientConfigPath, 'utf8')); }
+    catch { return {}; }
+})();
+
 let mainWindow = null;
 let connectionWindow = null;
 let displayPickerWindow = null;
@@ -234,36 +241,34 @@ function configureDesktopPermissions() {
     });
 }
 
-// IPC handler for connection
-ipcMain.handle('connect-to-server', async (event, url) => {
+function attemptConnect(url) {
     return new Promise((resolve, reject) => {
         const request = https.get(url + '/login.html', {
-            rejectUnauthorized: false // Allow self-signed certificates
+            rejectUnauthorized: false
         }, (response) => {
             if (response.statusCode === 200) {
-                if (!mainWindow) {
-                    createMainWindow();
-                }
-                mainWindow.loadURL(url + '/login.html', {
-                    webPreferences: {
-                        nodeIntegration: false,
-                        contextIsolation: true
-                    }
-                });
+                if (!mainWindow) createMainWindow();
+                mainWindow.loadURL(url + '/login.html');
                 mainWindow.show();
-                connectionWindow.close();
+                if (connectionWindow && !connectionWindow.isDestroyed()) connectionWindow.close();
                 resolve(true);
             } else {
                 reject(new Error('Server returned status: ' + response.statusCode));
             }
         });
-
         request.on('error', (error) => {
             reject(new Error('Could not connect to server: ' + error.message));
         });
-
         request.end();
     });
+}
+
+ipcMain.handle('connect-to-server', async (_event, url) => {
+    return attemptConnect(url);
+});
+
+ipcMain.handle('get-default-server-url', () => {
+    return clientConfig.serverUrl || '';
 });
 
 ipcMain.handle('pick-display-source', async () => {
@@ -279,14 +284,22 @@ ipcMain.handle('pick-display-source', async () => {
     };
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
     if (process.platform === 'darwin' && app.dock) {
         app.dock.setIcon(appIcon);
     }
     configureDesktopPermissions();
     createMenu();
-    createConnectionWindow();
 
+    const serverUrl = clientConfig.serverUrl && clientConfig.serverUrl.trim();
+    if (serverUrl) {
+        try {
+            await attemptConnect(serverUrl);
+            return;
+        } catch { /* fall through to connection window */ }
+    }
+
+    createConnectionWindow();
 });
 
 app.on('window-all-closed', () => {

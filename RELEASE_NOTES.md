@@ -1,5 +1,45 @@
 # Release Notes
 
+## v0.13.0 — 2026-03-28
+
+### Feat: full AWS deployment stack, TURN support, Electron auto-connect
+
+**Docker**
+- `Dockerfile` builds the Node.js app on Node 22 slim with native module support (bcrypt, better-sqlite3)
+- `docker-compose.yml` runs the FreeRTC app and a coturn TURN server together; certs, config, and data are volume-mounted so they persist across rebuilds
+- `coturn/turnserver.conf` included as a ready-to-edit template with port range, private IP deny rules, and placeholder for your Elastic IP and credentials
+
+**Terraform**
+- `terraform/main.tf` provisions EC2 (Ubuntu 24.04 LTS, t3.micro), security group, and Elastic IP
+- AMI resolved dynamically — always picks the latest Ubuntu 24.04 LTS image for the target region
+- All required ports opened: 22 (SSH), 80 (certbot), 8001 (app), 3478 TCP+UDP (TURN/STUN), 49152–65535 UDP (TURN relay)
+
+**Ansible**
+- `ansible/playbook.yml` fully configures the server from scratch: installs Docker, clones repo, writes secrets, patches coturn config, obtains SSL cert, starts all services
+- `inventory.ini.example` and `vars.yml.example` provide fill-in-the-blank templates; both gitignored
+
+**cert.sh**
+- New script handles Let's Encrypt certificate creation (`-c <domain>`) and renewal (`-r`)
+- `-e <email>` enables non-interactive mode for use with Ansible
+- `-v` for verbose output
+- Renewal auto-detects domain from existing cert and restarts FreeRTC automatically
+
+**TURN server config**
+- TURN credentials served from the server via `/api/rtc-config` — never bundled into client JS
+- `config/server.json` now includes `turnUrl`, `turnUser`, `turnCredential` fields
+- Client fetches ICE server config at startup and falls back to STUN-only if unavailable
+
+**Electron auto-connect**
+- New `config/client.json` holds the server URL — set it before building and the app connects on launch with no prompt
+- Connection dialog only appears when the URL is missing or the connection fails
+- Connection window simplified to a single URL field (was separate IP + port inputs)
+
+**README**
+- Overhauled to reflect AWS as the primary deployment path
+- Covers full Terraform → Ansible workflow, cert.sh usage, browser and desktop client connection
+
+---
+
 ## v0.12.1 — 2026-03-28
 
 ### Fix: camera picker modal, draggable settings panel, audio settings restored
