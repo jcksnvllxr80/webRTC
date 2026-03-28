@@ -196,13 +196,18 @@ async function loadFriendsList() {
                 const btnGroup = document.createElement('span');
                 btnGroup.className = 'friend-actions';
 
-                const inviteBtn = document.createElement('button');
-                inviteBtn.className = 'invite-friend-btn';
-                inviteBtn.textContent = 'Invite';
-                inviteBtn.addEventListener('click', async () => {
-                    inviteBtn.disabled = true;
-                    if (isInRoom()) {
-                        // Send direct invite to friend for current room
+                if (isInRoom()) {
+                    const isOnline = onlineSet.has(f.friend_username);
+                    const inviteBtn = document.createElement('button');
+                    inviteBtn.className = 'invite-friend-btn';
+                    inviteBtn.textContent = 'Invite';
+                    if (!isOnline) {
+                        inviteBtn.disabled = true;
+                        inviteBtn.title = 'User is offline';
+                    }
+                    inviteBtn.addEventListener('click', () => {
+                        if (!onlineSet.has(f.friend_username)) return;
+                        inviteBtn.disabled = true;
                         socket.emit('send-room-invite', {
                             toUsername: f.friend_username,
                             roomId: state.roomId
@@ -212,26 +217,9 @@ async function loadFriendsList() {
                             inviteBtn.textContent = 'Invite';
                             inviteBtn.disabled = false;
                         }, 2000);
-                    } else {
-                        inviteBtn.textContent = 'Creating...';
-                        try {
-                            const res = await fetch('/api/rooms', { method: 'POST' });
-                            const { roomId } = await res.json();
-                            const link = `${window.location.origin}/room/${roomId}`;
-                            await navigator.clipboard.writeText(link);
-                            inviteBtn.textContent = 'Copied!';
-                            setTimeout(() => {
-                                inviteBtn.textContent = 'Invite';
-                                inviteBtn.disabled = false;
-                            }, 2000);
-                        } catch (err) {
-                            console.error('Invite error:', err);
-                            inviteBtn.textContent = 'Invite';
-                            inviteBtn.disabled = false;
-                        }
-                    }
-                });
-                btnGroup.appendChild(inviteBtn);
+                    });
+                    btnGroup.appendChild(inviteBtn);
+                }
 
                 const removeBtn = document.createElement('button');
                 removeBtn.className = 'remove-friend-btn';

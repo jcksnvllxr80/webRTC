@@ -18,7 +18,7 @@ const options = {
 };
 
 const server = https.createServer(options, app);
-const io = require('socket.io')(server);
+const io = require('socket.io')(server, { maxHttpBufferSize: 10e6 }); // 10MB — needed for inline images/screenshots
 const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
 // Merge secrets.json if present (gitignored — put real API keys there)
 const SECRETS_PATH = path.join(ROOT_DIR, 'config', 'secrets.json');
@@ -352,7 +352,7 @@ io.on('connection', (socket) => {
         io.in(data.roomId).emit('chat-message', {
             username,
             message: data.message ? String(data.message).slice(0, 4096) : '',
-            html:    data.html    ? String(data.html).slice(0, 65536)    : null,
+            html:    data.html    ? String(data.html).slice(0, 5242880)   : null, // 5MB — supports inline screenshots
             msgId,
         });
     });
@@ -433,7 +433,7 @@ io.on('connection', (socket) => {
         const reactions = {};
         for (const [e, u] of msgRx) reactions[e] = { count: u.size, users: [...u] };
 
-        io.in(roomId).emit('message-reaction', { msgId: safeId, reactions });
+        io.in(roomId).emit('message-reaction', { msgId: safeId, reactions, reactorUsername: username });
     });
 
     socket.on('user-stopped-stream', (roomId, userId) => {

@@ -1,5 +1,23 @@
 # Release Notes
 
+## v0.11.1 — 2026-03-27
+
+### Fix: invite rules, reaction sound, screenshot in chat
+
+**Invite button**
+- Invite button only appears when you are in a room — not in the lobby
+- Disabled and titled "User is offline" when the friend is not currently logged in
+
+**Reaction sound**
+- Incoming reactions from other users now play the receive sound
+- No sound when you react to a message yourself
+
+**Screenshot / inline image in chat**
+- Images are now compressed via canvas (max 1280px, JPEG 0.82) before being embedded — keeps payloads small and consistent across screen sizes
+- Socket.IO `maxHttpBufferSize` raised to 10MB and server HTML slice limit raised to 5MB so large screenshots are no longer silently dropped
+
+---
+
 ## v0.11.0 — 2026-03-27
 
 ### Feat: room invites, connection status, stop video fix, macOS name fix

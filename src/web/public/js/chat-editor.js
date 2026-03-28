@@ -34068,13 +34068,29 @@ function createChatEditor({ editableEl, onSubmit }) {
     return true;
   }
   function insertImageFile(file) {
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Image too large \u2014 max 2 MB.");
+    if (file.size > 20 * 1024 * 1024) {
+      alert("Image too large \u2014 max 20 MB.");
       return;
     }
     const reader = new FileReader();
     reader.onload = (e) => {
-      editor.chain().focus().setImage({ src: e.target.result, alt: file.name }).run();
+      const img = new window.Image();
+      img.onload = () => {
+        const MAX = 1280;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          const scale = Math.min(MAX / width, MAX / height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        const src = canvas.toDataURL("image/jpeg", 0.82);
+        editor.chain().focus().setImage({ src, alt: file.name }).run();
+      };
+      img.src = e.target.result;
     };
     reader.readAsDataURL(file);
   }

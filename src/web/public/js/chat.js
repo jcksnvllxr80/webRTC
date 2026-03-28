@@ -491,8 +491,11 @@ export function setupChatListeners() {
         document.getElementById('message-receive')?.play().catch(() => {});
     });
 
-    socket.on('message-reaction', ({ msgId, reactions }) => {
+    socket.on('message-reaction', ({ msgId, reactions, reactorUsername }) => {
         applyReactions(msgId, reactions);
+        if (reactorUsername && reactorUsername !== currentUsername) {
+            document.getElementById('message-receive')?.play().catch(() => {});
+        }
     });
 
     socket.on('message-edited', ({ msgId, html }) => {
