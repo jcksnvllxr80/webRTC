@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.11.3 — 2026-03-27
+
+### Fix: invite button not updating when friend comes online
+
+- Invite button disabled state was only set at render time — if a friend came online after the list rendered, the button stayed greyed out
+- Invite buttons now update in real-time alongside status dots when `user-online` / `user-offline` events arrive
+
+---
+
 ## v0.11.2 — 2026-03-27
 
 ### Fix: invite button incorrectly disabled for online friends

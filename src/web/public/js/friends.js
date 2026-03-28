@@ -17,11 +17,13 @@ export function setupFriendsListeners() {
     socket.on('user-online', (username) => {
         onlineSet.add(username);
         updateStatusDots(username, true);
+        updateInviteButtons(username, true);
     });
 
     socket.on('user-offline', (username) => {
         onlineSet.delete(username);
         updateStatusDots(username, false);
+        updateInviteButtons(username, false);
     });
 
     // Incoming room invite
@@ -98,6 +100,13 @@ async function loadOnlineUsers() {
     } catch (err) {
         console.error('Load online users error:', err);
     }
+}
+
+function updateInviteButtons(username, isOnline) {
+    document.querySelectorAll(`.invite-friend-btn[data-username="${CSS.escape(username)}"]`).forEach(btn => {
+        btn.disabled = !isOnline;
+        btn.title = isOnline ? '' : 'User is offline';
+    });
 }
 
 function updateStatusDots(username, isOnline) {
@@ -200,6 +209,7 @@ async function loadFriendsList() {
                     const inviteBtn = document.createElement('button');
                     inviteBtn.className = 'invite-friend-btn';
                     inviteBtn.textContent = 'Invite';
+                    inviteBtn.dataset.username = f.friend_username;
                     if (!isOnline) {
                         inviteBtn.disabled = true;
                         inviteBtn.title = 'User is offline';
