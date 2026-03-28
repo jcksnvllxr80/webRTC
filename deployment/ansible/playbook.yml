@@ -1,0 +1,68 @@
+---
+- name: Set up FreeRTC server
+  hosts: freertc
+  become: true
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install prerequisites
+      apt:
+        name: [curl, git, certbot]
+        state: present
+
+    - name: Install Docker
+      shell: curl -fsSL https://get.docker.com | sh
+      args:
+        creates: /usr/bin/docker
+
+    - name: Add ubuntu to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Clone FreeRTC repo
+      git:
+        repo: https://github.com/jcksnvllxr80/FreeRTC.git
+        dest: /opt/freertc
+        version: master
+
+    - name: Copy secrets.json
+      copy:
+        src: ../../config/secrets.json
+        dest: /opt/freertc/config/secrets.json
+        mode: '0600'
+
+    - name: Set coturn external IP
+      lineinfile:
+        path: /opt/freertc/coturn/turnserver.conf
+        regexp: '^external-ip='
+        line: "external-ip={{ public_ip }}"
+
+    - name: Set coturn credentials from secrets.json
+      shell: |
+        TURN_USER=$(python3 -c "import json; d=json.load(open('/opt/freertc/config/secrets.json')); print(d['turnUser'])")
+        TURN_CRED=$(python3 -c "import json; d=json.load(open('/opt/freertc/config/secrets.json')); print(d['turnCredential'])")
+        sed -i "s/^user=.*/user=$TURN_USER:$TURN_CRED/" /opt/freertc/coturn/turnserver.conf
+
+    - name: Make cert.sh executable
+      file:
+        path: /opt/freertc/cert.sh
+        mode: '0755'
+
+    - name: Get SSL certificate
+      command: ./cert.sh -c {{ domain }} -e {{ letsencrypt_email }}
+      args:
+        chdir: /opt/freertc
+        creates: /opt/freertc/certs/certificate.pem
+
+    - name: Start FreeRTC
+      shell: docker compose up -d
+      args:
+        chdir: /opt/freertc

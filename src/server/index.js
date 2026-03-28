@@ -168,6 +168,20 @@ app.get('/api/version', (req, res) => {
     res.json({ version: pkg.version });
 });
 
+app.get('/api/rtc-config', (req, res) => {
+    const iceServers = [
+        { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
+    ];
+    if (config.turnUrl) {
+        iceServers.push({
+            urls: config.turnUrl,
+            username: config.turnUser,
+            credential: config.turnCredential
+        });
+    }
+    res.json({ iceServers });
+});
+
 // ── GIPHY proxy endpoints (key stays server-side) ──
 async function fetchGiphy(path) {
     const key = process.env.GIPHY_API_KEY || config.giphyApiKey;

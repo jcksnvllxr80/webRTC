@@ -4,256 +4,91 @@ A self-hosted, peer-to-peer video and audio calling app with rich text chat, scr
 
 ## Project Layout
 
-```text
-.
-|-- certs/          HTTPS certificate files
-|-- config/         runtime config
-|-- data/           local SQLite database files
-|-- src/
-|   |-- desktop/    Electron client
-|   |-- server/     HTTPS + Socket.IO backend
-|   `-- web/public/ browser app
-|-- install.bat
-|-- install.sh
-|-- package.json
-`-- README.md
+```
+certs/              HTTPS certificate files
+config/             runtime config and secrets
+data/               SQLite database (auto-created)
+deployment/
+  ansible/          Ansible playbook and config templates
+  terraform/        Terraform infrastructure scripts
+  DEPLOYMENT.md     Full AWS deployment guide
+src/
+  desktop/          Electron client
+  server/           HTTPS + Socket.IO backend
+  web/public/       browser app
 ```
 
-## Getting Started
+## Deploying to AWS
 
-### 1. Prerequisites
+Video and audio require a public server and a TURN relay — WebRTC cannot cross most home NAT routers without one. AWS Free Tier covers everything for the first 12 months.
 
-Install Node.js. A current LTS version is fine.
-
-### 2. Run the installer
-
-From the project root, run one installer:
-
-```bash
-sh ./install.sh
-```
-
-On Windows PowerShell, use:
-
-```powershell
-.\install.bat
-```
-
-The installer runs `npm install`, rebuilds the native modules for the current Node.js runtime, and checks that the HTTPS certificate files are present.
-
-### 3. Make sure the HTTPS certificate files exist
-
-This app expects these files in `certs/`:
-
-* `certs/private.key`
-* `certs/certificate.pem`
-
-They are already in this repo, so the default setup works without any extra certificate step.
-
-If you want to regenerate them yourself, use OpenSSL:
-
-```bash
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout certs/private.key -out certs/certificate.pem
-```
-
-### 4. Start the server
-
-Run:
-
-```bash
-npm start
-```
-
-The default port is `8001`.
-
-### 5. Open the app
-
-Use one of these URLs:
-
-* On the same computer: `https://localhost:8001`
-* On another device on your network: `https://<server-ip>:8001`
-
-Because the certificate is self-signed, your browser will show a security warning the first time. Continue to the site so the app can load.
-
-### 6. Create accounts and log in
-
-For a real test, use two separate browser sessions:
-
-* two different devices, or
-* one normal browser window and one private/incognito window
-
-Then:
-
-1. Open the app URL in the first session and create an account at `/register.html`.
-2. Open the same app URL in the second session and create a different account.
-3. Log in with both accounts.
-
-### 7. Start a call
-
-After both users are logged in:
-
-1. In the first session, click `Create Room` on the lobby page.
-2. Copy the room link using the `Copy Link` button in the room bar.
-3. Paste the link into the second session's browser (or enter the room ID in the `Join` field on the lobby).
-4. Click `Start Camera` or `Share Screen` and allow access.
-5. The two users will connect automatically once both are in the same room.
-
-You can also:
-
-* send chat messages in the room
-* add the other user as a friend
-* click `Invite` next to a friend's name to create a room and copy the link to your clipboard
-
-## Chat
-
-The in-room chat supports rich text, file attachments, emoji, and inline images.
-
-### Formatting
-
-| Action | How |
-|--------|-----|
-| Bold | Select text → toolbar, or `Ctrl+B` |
-| Italic | Select text → toolbar, or `Ctrl+I` |
-| Strikethrough | Select text → toolbar, or `Ctrl+Shift+X` |
-| Highlight | Select text → toolbar, or `Ctrl+Shift+H` |
-| Inline code | Select text → toolbar, or `` Ctrl+` `` |
-| Code block | Start a line with ` ``` ` |
-| Link | Select text → toolbar → paste URL |
-| Send | `Enter` |
-| Newline | `Shift+Enter` |
-
-### Emoji
-
-Click 😀 to open the emoji picker, or type `:shortcode:` (e.g. `:wave:`) directly in the input for inline autocomplete. Use ↑↓ to navigate suggestions and Enter to apply.
-
-### GIF support
-
-GIF search requires a [GIPHY API](https://developers.giphy.com) key (free, 100 req/hr beta tier). Add it to `config/secrets.json` — see the [Secrets](#secrets) section below.
-
-
-
-### File and image attachments
-
-Click 📎, drag files onto the input, or paste an image from the clipboard. Images up to ~5 MB are embedded inline. Other files are sent as downloadable cards. The server enforces a hard 5 MB limit per file.
-
-### Rebuilding the editor bundle
-
-The chat editor (Tiptap, DOMPurify, emoji-picker-element) is pre-bundled at `src/web/public/js/chat-editor.js`. If you modify `src/web/editor-src/index.js`, rebuild with:
-
-```bash
-npm run build:editor
-```
-
-This requires esbuild, which is included in the dev dependencies.
-
-## Electron Desktop Client
-
-The Electron app is a desktop client for the HTTPS server. It does not replace the server, so the server must already be running.
-
-### Run the desktop client
-
-1. Start the server:
-
-```bash
-npm start
-```
-
-2. In a second terminal, start Electron:
-
-```bash
-npm run electron
-```
-
-3. In the Electron connection window, use:
-
-* Server IP: `localhost` if the server is on the same computer
-* Port: `8001` unless you changed it in `config/server.json` or with `PORT`
-
-After connecting, the desktop client opens the same login and room flow as the browser version.
-
-### Build the desktop app
-
-Building packages the Electron client into a standalone installer. The packaged app still requires a running FreeRTC server to connect to.
-
-**Prerequisites:** The dev dependencies (`electron` and `electron-builder`) must be installed. They are included by default when you run the installer or `npm install`.
-
-**Build for your current platform:**
-
-```bash
-npm run build
-```
-
-This produces platform-specific output in the `dist/` folder:
-
-| Platform | Target | Output |
-|----------|--------|--------|
-| Windows  | NSIS installer | `dist/FreeRTC Setup x.x.x.exe` |
-| macOS    | DMG | `dist/FreeRTC-x.x.x.dmg` |
-| Linux    | AppImage | `dist/FreeRTC-x.x.x.AppImage` |
-
-**Build for a specific platform** (cross-compilation may require additional tooling):
-
-```bash
-# Windows
-npx electron-builder --win
-
-# macOS (must be run on macOS)
-npx electron-builder --mac
-
-# Linux
-npx electron-builder --linux
-```
-
-**Note:** The build dependencies (`electron`, `electron-builder`) account for the majority of `npm audit` warnings. These are build-time only and do not affect the running server or browser clients. You can verify with `npm audit --omit=dev`.
+Deployment is automated using Terraform and Ansible — scripts live in `deployment/`. See **[deployment/DEPLOYMENT.md](deployment/DEPLOYMENT.md)** for the full step-by-step guide covering prerequisites, Terraform setup, Ansible configuration, SSL certificates, and the GitHub Actions CI/CD workflow.
 
 ## Secrets
 
-API keys and other credentials go in `config/secrets.json`. This file is gitignored and never committed. The server merges it over `config/server.json` at startup.
+`config/server.json` holds non-sensitive defaults (port only) and is committed to the repo. `config/secrets.json` holds credentials — it is gitignored and never committed.
 
-Create the file if it doesn't exist:
+Create `config/secrets.json` before running Ansible (it copies it to the server automatically):
 
 ```json
 {
-  "giphyApiKey": "YOUR_GIPHY_KEY_HERE"
+  "turnUrl": "turn:YOUR_ELASTIC_IP:3478",
+  "turnUser": "freertc",
+  "turnCredential": "your-strong-password",
+  "giphyApiKey": "YOUR_GIPHY_KEY"
 }
 ```
 
-| Key | Where to get it |
-|-----|----------------|
-| `giphyApiKey` | [developers.giphy.com](https://developers.giphy.com) — free beta tier, 100 req/hr |
+| Key | Purpose | Where to get it |
+|-----|---------|----------------|
+| `turnUrl` | TURN relay server for cross-network calls | Your Elastic IP (from Terraform output) |
+| `turnUser` / `turnCredential` | TURN authentication | Make up any username and strong password |
+| `giphyApiKey` | GIF search in chat | [developers.giphy.com](https://developers.giphy.com) — free, 100 req/hr |
 
-## Notes
+## Electron Desktop Client
 
-* `data/users.db` is created automatically the first time the app runs.
-* The server listens on `0.0.0.0`, so other devices on the same network can reach it.
-* The default port comes from `config/server.json`. You can also override it with the `--port=` CLI argument or the `PORT` environment variable — argument takes highest priority.
-* The browser version will show a self-signed certificate warning the first time you connect.
-* This project uses public STUN servers and does not include a TURN server, so same-network testing is the simplest and most reliable setup.
-* Electron build output is written to the `dist` folder.
+The desktop app is a native wrapper that connects to your FreeRTC server. Before building, set the server URL in `config/client.json`:
 
-## Dependencies
+```json
+{
+  "serverUrl": "https://your-domain.com:8001"
+}
+```
 
-The installer scripts install the Node.js package dependencies for you, so you normally do not need to run `npm install` manually.
+When `serverUrl` is set, the app connects automatically on launch with no prompt. If it's empty or the connection fails, a dialog appears to enter the URL manually.
 
-System dependencies:
+Build on the platform you want to target:
 
-* Node.js
-* npm, which ships with Node.js
-* OpenSSL only if you need to generate new HTTPS certificate files
+```bash
+# Install dependencies first (only needed once)
+npm install
 
-Runtime package dependencies:
+# Build for your current platform
+npm run build
+```
 
-* `bcrypt`
-* `better-sqlite3`
-* `express`
-* `express-session`
-* `socket.io`
-* `@tiptap/starter-kit`, `@tiptap/extension-highlight`, `@tiptap/extension-image`, `@tiptap/extension-link`, `@tiptap/extension-placeholder` — rich text editor
-* `emoji-picker-element` — emoji picker
-* `dompurify` — HTML sanitization
+Output in `dist/`:
 
-Desktop and editor build dependencies:
+| Platform | Output |
+|----------|--------|
+| Windows | `FreeRTC Setup x.x.x.exe` |
+| macOS | `FreeRTC-x.x.x.dmg` |
+| Linux | `FreeRTC-x.x.x.AppImage` |
 
-* `electron`
-* `electron-builder`
-* `esbuild` — bundles the chat editor source
+`npm run build` targets your current platform. To cross-compile for a specific platform:
+
+```bash
+npx electron-builder --win
+npx electron-builder --mac   # must run on macOS
+npx electron-builder --linux
+```
+
+Install it like any other app. On first launch, enter your server's domain or IP and port `8001` in the connection window, then log in as normal.
+
+---
+
+## Links
+
+- [Feature Reference](design/FEATURES.md) — video, audio, and chat feature details
+- [Deployment Guide](deployment/DEPLOYMENT.md) — full AWS setup with Terraform and Ansible
+- [Design System](design/DESIGN.md) — fonts, colors, and UI conventions
