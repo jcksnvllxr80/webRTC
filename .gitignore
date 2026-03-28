@@ -13,10 +13,10 @@ claudeignore
 codexignore
 dist
 .gstack/
-ansible/inventory.ini
-ansible/vars.yml
-terraform/terraform.tfvars
-terraform/.terraform/
-terraform/*.tfstate
-terraform/*.tfstate.backup
-terraform/.terraform.lock.hcl
+deployment/ansible/inventory.ini
+deployment/ansible/vars.yml
+deployment/terraform/terraform.tfvars
+deployment/terraform/.terraform/
+deployment/terraform/*.tfstate
+deployment/terraform/*.tfstate.backup
+deployment/terraform/.terraform.lock.hcl

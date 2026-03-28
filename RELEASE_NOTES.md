@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.13.2 — 2026-03-28
+
+### Chore: consolidated deployment directory, README cleanup
+
+- Moved `terraform/`, `ansible/`, and `DEPLOYMENT.md` into a single `deployment/` directory to keep infrastructure scripts co-located and out of the project root
+- Updated all references: README link and project layout, `.gitignore` paths, and `cd` commands inside `DEPLOYMENT.md`
+- Added Ansible and Terraform prerequisites, tool install instructions, IAM setup steps, and domain timing guidance to `DEPLOYMENT.md`
+- README deployment section reduced to a short description with a link to `deployment/DEPLOYMENT.md`
+
+---
+
 ## v0.13.1 — 2026-03-28
 
 ### Chore: GitHub Actions CI/CD, README deployment docs
