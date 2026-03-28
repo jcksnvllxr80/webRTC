@@ -26,9 +26,9 @@ Deployment is automated using Terraform and Ansible — scripts live in `deploym
 
 ## Secrets
 
-`config/secrets.json` holds credentials and API keys. It is gitignored and never committed. The server merges it over `config/server.json` at startup, so any key here overrides the default.
+`config/server.json` holds non-sensitive defaults (port only) and is committed to the repo. `config/secrets.json` holds credentials — it is gitignored and never committed.
 
-Create the file on your server (Ansible does this automatically — this is only needed for manual setups):
+Create `config/secrets.json` before running Ansible (it copies it to the server automatically):
 
 ```json
 {
@@ -41,8 +41,8 @@ Create the file on your server (Ansible does this automatically — this is only
 
 | Key | Purpose | Where to get it |
 |-----|---------|----------------|
-| `turnUrl` | TURN relay server for cross-network calls | Your coturn server (set by Ansible) |
-| `turnUser` / `turnCredential` | TURN authentication | Must match `coturn/turnserver.conf` |
+| `turnUrl` | TURN relay server for cross-network calls | Your Elastic IP (from Terraform output) |
+| `turnUser` / `turnCredential` | TURN authentication | Make up any username and strong password |
 | `giphyApiKey` | GIF search in chat | [developers.giphy.com](https://developers.giphy.com) — free, 100 req/hr |
 
 ## Electron Desktop Client

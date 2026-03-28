@@ -33,15 +33,9 @@
         dest: /opt/freertc
         version: master
 
-    - name: Write secrets.json
+    - name: Copy secrets.json
       copy:
-        content: |
-          {
-            "turnUrl": "turn:{{ public_ip }}:3478",
-            "turnUser": "{{ turn_user }}",
-            "turnCredential": "{{ turn_credential }}",
-            "giphyApiKey": "{{ giphy_api_key }}"
-          }
+        src: ../../config/secrets.json
         dest: /opt/freertc/config/secrets.json
         mode: '0600'
 
@@ -51,11 +45,11 @@
         regexp: '^external-ip='
         line: "external-ip={{ public_ip }}"
 
-    - name: Set coturn credentials
-      lineinfile:
-        path: /opt/freertc/coturn/turnserver.conf
-        regexp: '^user='
-        line: "user={{ turn_user }}:{{ turn_credential }}"
+    - name: Set coturn credentials from secrets.json
+      shell: |
+        TURN_USER=$(python3 -c "import json; d=json.load(open('/opt/freertc/config/secrets.json')); print(d['turnUser'])")
+        TURN_CRED=$(python3 -c "import json; d=json.load(open('/opt/freertc/config/secrets.json')); print(d['turnCredential'])")
+        sed -i "s/^user=.*/user=$TURN_USER:$TURN_CRED/" /opt/freertc/coturn/turnserver.conf
 
     - name: Make cert.sh executable
       file:

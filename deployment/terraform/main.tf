@@ -27,9 +27,12 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+resource "aws_default_vpc" "default" {}
+
 resource "aws_security_group" "freertc" {
   name        = "freertc"
   description = "FreeRTC server"
+  vpc_id      = aws_default_vpc.default.id
 
   # SSH
   ingress {

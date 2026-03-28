@@ -4,8 +4,3 @@
 domain: your-domain.com            # domain pointing to your Elastic IP
 public_ip: YOUR_ELASTIC_IP         # from: terraform output public_ip
 letsencrypt_email: you@example.com # used to register the SSL certificate
-
-turn_user: freertc
-turn_credential: your-strong-password
-
-giphy_api_key: ""                  # optional — leave empty to disable GIF search
