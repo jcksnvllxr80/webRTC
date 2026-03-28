@@ -87,8 +87,7 @@ export function setupFriendsListeners() {
         }
     }
 
-    loadFriendsList();
-    loadOnlineUsers();
+    loadOnlineUsers().then(() => loadFriendsList());
 }
 
 async function loadOnlineUsers() {

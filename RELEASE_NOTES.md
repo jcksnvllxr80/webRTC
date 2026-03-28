@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.11.2 — 2026-03-27
+
+### Fix: invite button incorrectly disabled for online friends
+
+- Online status was not yet loaded when the friends list rendered, causing all invite buttons to appear disabled even for online users
+- Friends list now renders after the online users fetch completes so invite button state is accurate
+
+---
+
 ## v0.11.1 — 2026-03-27
 
 ### Fix: invite rules, reaction sound, screenshot in chat
