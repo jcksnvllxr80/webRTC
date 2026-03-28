@@ -1,5 +1,28 @@
 # Release Notes
 
+## v0.11.0 — 2026-03-27
+
+### Feat: room invites, connection status, stop video fix, macOS name fix
+
+**Room invites**
+- Invite button on the friends list now sends a direct invite when you're already in a room — no link copying required
+- Recipient receives a toast notification (bottom-right, auto-dismisses after 12s) with a Join button
+- Bell icon in the header shows an unread badge; clicking opens a panel of recent invites (up to 10) with Join and dismiss per item
+- Out of a room, Invite still creates a new room and copies the link to the clipboard
+
+**Connection status**
+- Remote video area shows "Waiting for other participant…" when you're alone in the room
+- Shows "Connection lost — reconnecting…" or "Connection failed — retrying…" on ICE failure
+- Clears automatically when the peer connects
+
+**Stop video fix**
+- Stopping your video or leaving audio no longer tears down the peer connection (and clears incoming video) when the remote peer is still in the room
+
+**macOS name fix**
+- App name in the macOS dock and menu bar now correctly shows "FreeRTC" instead of "Electron"
+
+---
+
 ## v0.10.3 — 2026-03-27
 
 ### Fix: icon, header cleanup, help menu, minimize button

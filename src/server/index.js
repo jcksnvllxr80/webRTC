@@ -305,6 +305,15 @@ io.on('connection', (socket) => {
         socket.to(roomId).emit('ice-candidate', candidate);
     });
 
+    socket.on('send-room-invite', ({ toUsername, roomId }) => {
+        const targetSockets = onlineUsers.get(toUsername);
+        if (!targetSockets) return;
+        const roomLink = `/room/${roomId}`;
+        targetSockets.forEach(targetSocketId => {
+            io.to(targetSocketId).emit('room-invite', { fromUsername: username, roomId, roomLink });
+        });
+    });
+
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
 

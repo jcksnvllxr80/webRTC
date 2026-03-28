@@ -4,6 +4,17 @@ import { renderParticipants } from './room.js';
 let makingOffer = false;
 let pendingCandidates = [];
 
+function setConnectionStatus(message) {
+    const el = document.getElementById('connection-status');
+    if (!el) return;
+    if (message) {
+        el.textContent = message;
+        el.hidden = false;
+    } else {
+        el.hidden = true;
+    }
+}
+
 export function ensurePeerConnection() {
     if (state.peerConnection) return;
 
@@ -57,10 +68,14 @@ export function ensurePeerConnection() {
     // Monitor ICE connection health and trigger restart on failure/prolonged disconnect
     state.peerConnection.oniceconnectionstatechange = () => {
         const s = state.peerConnection?.iceConnectionState;
-        if (s === 'failed') {
+        if (s === 'connected' || s === 'completed') {
+            setConnectionStatus(null);
+        } else if (s === 'failed') {
             console.warn('ICE failed — restarting');
+            setConnectionStatus('Connection failed — retrying…');
             state.peerConnection?.restartIce();
         } else if (s === 'disconnected') {
+            setConnectionStatus('Connection lost — reconnecting…');
             setTimeout(() => {
                 if (state.peerConnection?.iceConnectionState === 'disconnected') {
                     console.warn('ICE still disconnected after 3s — restarting');
@@ -167,6 +182,7 @@ export function closePeerConnection() {
 export function setupSignalingListeners() {
     socket.on('user-connected', (userId, username) => {
         console.log('User connected:', userId, username);
+        setConnectionStatus(null);
         // Only auto-offer if we have any active media
         const { audio, video, screen } = state.media;
         if (audio || video || screen) {
@@ -239,6 +255,9 @@ export function setupSignalingListeners() {
             console.log('Remote peer left — closing peer connection');
             closePeerConnection();
         }
+        if (!hasRemotePeer) {
+            setConnectionStatus('Waiting for other participant…');
+        }
     });
 
     socket.on('participant-updated', (socketId, data) => {
@@ -257,4 +276,5 @@ export function setupSignalingListeners() {
     });
 
     socket.emit('join-room', state.roomId, socket.id);
+    setConnectionStatus('Waiting for other participant…');
 }

@@ -18,9 +18,24 @@
     <header id="app-header">
         <div class="header-right">
             <span id="current-user"></span>
+            <div class="invite-bell-wrap">
+                <button id="invite-bell-btn" title="Invites" aria-label="Invites">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6V11c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+                    <span id="invite-badge" class="invite-badge" hidden>0</span>
+                </button>
+                <div id="invite-panel" class="invite-panel" hidden>
+                    <div class="invite-panel-header">Invites</div>
+                    <ul id="invite-list" class="invite-list">
+                        <li class="invite-empty">No recent invites</li>
+                    </ul>
+                </div>
+            </div>
             <button id="logout-btn">Logout</button>
         </div>
     </header>
+
+    <!-- Toast container for incoming invites -->
+    <div id="invite-toast-container" class="invite-toast-container"></div>
 
     <!-- Lobby (no room selected) -->
     <main id="lobby">
@@ -67,6 +82,7 @@
                     </div>
                 </div>
                 <div id="remote-wrapper">
+                    <div id="connection-status" class="connection-status" hidden></div>
                     <video class="video-player" id="user-2" autoplay playsinline></video>
                     <div id="remote-controls">
                         <button id="mute-remote-btn" title="Mute" aria-label="Mute remote audio">

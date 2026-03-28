@@ -96,9 +96,10 @@ export function leaveAudio() {
     state.media.audio = false;
     broadcastMediaState();
 
-    // If nothing else is active, tear down the peer connection
+    // If nothing else is active, tear down the peer connection only if no remote peer is present
     if (!hasAnyMedia()) {
-        closePeerConnection();
+        const hasRemotePeer = [...state.participants.keys()].some(sid => sid !== socket.id);
+        if (!hasRemotePeer) closePeerConnection();
         socket.emit('user-stopped-stream', state.roomId, socket.id);
     }
 }
@@ -225,7 +226,8 @@ export function stopVideo() {
     broadcastMediaState();
 
     if (!hasAnyMedia()) {
-        closePeerConnection();
+        const hasRemotePeer = [...state.participants.keys()].some(sid => sid !== socket.id);
+        if (!hasRemotePeer) closePeerConnection();
         socket.emit('user-stopped-stream', state.roomId, socket.id);
     }
 }

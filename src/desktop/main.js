@@ -1,4 +1,5 @@
 const { app, BrowserWindow, desktopCapturer, ipcMain, Menu, nativeImage, session, shell } = require('electron');
+app.name = 'FreeRTC';
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
