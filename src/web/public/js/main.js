@@ -35,7 +35,7 @@ if (isInRoom()) {
         leaveAudio();
     });
 
-    // Start Camera — shows picker if multiple cameras available
+    // Start Camera — shows picker modal if multiple cameras available
     const startCameraBtn = document.getElementById('start-camera');
 
     async function launchCamera() {
@@ -49,54 +49,40 @@ if (isInRoom()) {
         startCameraBtn.disabled = false;
     }
 
-    function showCameraPickerPopup(cameras) {
-        // Remove any existing popup
-        document.getElementById('camera-picker-popup')?.remove();
+    function showCameraPickerModal(cameras) {
+        const modal = document.getElementById('camera-picker-modal');
+        const list  = document.getElementById('camera-picker-list');
+        if (!modal || !list) return;
 
-        const popup = document.createElement('div');
-        popup.id = 'camera-picker-popup';
-        popup.className = 'camera-picker-popup';
-        popup.style.position = 'fixed';
-
-        const title = document.createElement('h6');
-        title.textContent = 'Select Camera';
-        popup.appendChild(title);
-
-        for (const cam of cameras) {
+        list.innerHTML = '';
+        cameras.forEach((cam, i) => {
             const btn = document.createElement('button');
             btn.className = 'camera-picker-option';
-            btn.textContent = cam.label || `Camera ${cameras.indexOf(cam) + 1}`;
+            btn.innerHTML =
+                `<span class="camera-picker-option-icon">📷</span>` +
+                `<span class="camera-picker-option-name">${cam.label || `Camera ${i + 1}`}</span>`;
             btn.addEventListener('click', () => {
                 const sel = document.getElementById('camera-select');
                 if (sel) sel.value = cam.deviceId;
-                popup.remove();
+                closeCameraModal();
                 launchCamera();
             });
-            popup.appendChild(btn);
-        }
+            list.appendChild(btn);
+        });
 
-        document.body.appendChild(popup);
-
-        // Position above button
-        const rect = startCameraBtn.getBoundingClientRect();
-        const pw = popup.offsetWidth || 180;
-        const ph = popup.offsetHeight || 80;
-        let left = rect.left + rect.width / 2 - pw / 2;
-        let top  = rect.top - ph - 8;
-        if (top < 8) top = rect.bottom + 8;
-        left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
-        popup.style.left = left + 'px';
-        popup.style.top  = top  + 'px';
-
-        // Close on outside click
-        function onOutside(e) {
-            if (!popup.contains(e.target) && e.target !== startCameraBtn) {
-                popup.remove();
-                document.removeEventListener('click', onOutside, true);
-            }
-        }
-        setTimeout(() => document.addEventListener('click', onOutside, true), 0);
+        modal.style.display = 'flex';
     }
+
+    function closeCameraModal() {
+        const modal = document.getElementById('camera-picker-modal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    document.getElementById('camera-picker-close')?.addEventListener('click', closeCameraModal);
+    document.getElementById('camera-picker-cancel')?.addEventListener('click', closeCameraModal);
+    document.getElementById('camera-picker-modal')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeCameraModal(); // click backdrop
+    });
 
     startCameraBtn.addEventListener('click', async () => {
         let cameras = [];
@@ -106,7 +92,7 @@ if (isInRoom()) {
         } catch { /* fall through to direct start */ }
 
         if (cameras.length > 1) {
-            showCameraPickerPopup(cameras);
+            showCameraPickerModal(cameras);
         } else {
             launchCamera();
         }
@@ -129,36 +115,80 @@ if (isInRoom()) {
         stopVideo();
     });
 
-    // Settings panel
-    const settingsBtn = document.getElementById('settings-btn');
+    // Settings panel — draggable floating
+    const settingsBtn   = document.getElementById('settings-btn');
     const settingsPanel = document.getElementById('settings-panel');
-    const toggleNS = document.getElementById('toggle-ns');
-    const toggleEC = document.getElementById('toggle-ec');
+    const dragHandle    = document.getElementById('settings-drag-handle');
+    const closeBtn      = document.getElementById('settings-close-btn');
+    const toggleNS  = document.getElementById('toggle-ns');
+    const toggleEC  = document.getElementById('toggle-ec');
     const toggleAGC = document.getElementById('toggle-agc');
 
     // Init checkboxes from saved state
-    toggleNS.checked = state.audioSettings.noiseSuppression;
-    toggleEC.checked = state.audioSettings.echoCancellation;
+    toggleNS.checked  = state.audioSettings.noiseSuppression;
+    toggleEC.checked  = state.audioSettings.echoCancellation;
     toggleAGC.checked = state.audioSettings.autoGainControl;
+
+    function openSettingsPanel() {
+        // Restore last position, or position near the gear button
+        const saved = (() => { try { return JSON.parse(localStorage.getItem('settings-panel-pos')); } catch { return null; } })();
+        if (saved && typeof saved.x === 'number') {
+            settingsPanel.style.left = saved.x + 'px';
+            settingsPanel.style.top  = saved.y + 'px';
+        } else {
+            settingsPanel.style.left = '';
+            settingsPanel.style.top  = '';
+            settingsPanel.style.right  = '16px';
+            settingsPanel.style.bottom = '64px';
+        }
+        settingsPanel.style.display = 'block';
+    }
+
+    function closeSettingsPanel() { settingsPanel.style.display = 'none'; }
 
     settingsBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+        settingsPanel.style.display === 'none' ? openSettingsPanel() : closeSettingsPanel();
     });
 
-    // Close on click outside
-    document.addEventListener('click', (e) => {
-        if (settingsPanel.style.display !== 'none' && !settingsPanel.contains(e.target) && e.target !== settingsBtn) {
-            settingsPanel.style.display = 'none';
-        }
-    });
+    closeBtn?.addEventListener('click', closeSettingsPanel);
 
-    // Close on Escape
+    // Escape key closes it
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && settingsPanel.style.display !== 'none') {
-            settingsPanel.style.display = 'none';
-        }
+        if (e.key === 'Escape' && settingsPanel.style.display !== 'none') closeSettingsPanel();
     });
+
+    // Drag
+    let dragging = false, dragOX = 0, dragOY = 0;
+    dragHandle?.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.settings-close-btn')) return;
+        dragging = true;
+        const r = settingsPanel.getBoundingClientRect();
+        dragOX = e.clientX - r.left;
+        dragOY = e.clientY - r.top;
+        // Switch from right/bottom anchoring to explicit left/top once dragged
+        settingsPanel.style.right  = '';
+        settingsPanel.style.bottom = '';
+        settingsPanel.style.left   = r.left + 'px';
+        settingsPanel.style.top    = r.top  + 'px';
+        document.addEventListener('mousemove', onDragMove);
+        document.addEventListener('mouseup',   onDragUp);
+    });
+    function onDragMove(e) {
+        if (!dragging) return;
+        const pw = settingsPanel.offsetWidth;
+        const ph = settingsPanel.offsetHeight;
+        const x = Math.max(0, Math.min(e.clientX - dragOX, window.innerWidth  - pw));
+        const y = Math.max(0, Math.min(e.clientY - dragOY, window.innerHeight - ph));
+        settingsPanel.style.left = x + 'px';
+        settingsPanel.style.top  = y + 'px';
+        try { localStorage.setItem('settings-panel-pos', JSON.stringify({ x, y })); } catch { /* ignore */ }
+    }
+    function onDragUp() {
+        dragging = false;
+        document.removeEventListener('mousemove', onDragMove);
+        document.removeEventListener('mouseup',   onDragUp);
+    }
 
     // Toggle handlers
     async function handleToggle(checkbox, key) {

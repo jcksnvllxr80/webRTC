@@ -1,5 +1,24 @@
 # Release Notes
 
+## v0.12.1 — 2026-03-28
+
+### Fix: camera picker modal, draggable settings panel, audio settings restored
+
+**Camera picker rework**
+- Replaced the small floating tooltip with a proper centered modal: dark overlay with blur, animated card, full-width camera buttons with icon and label, ✕ close button, Cancel button, and click-backdrop-to-dismiss
+
+**Draggable settings panel**
+- Settings panel is now a `position: fixed` floating panel — no longer anchored above the gear button where it could be clipped off-screen
+- Drag handle at the top lets you move it anywhere on screen; position is saved to `localStorage` and restored on next open
+- Opens to the bottom-right corner by default when no saved position exists
+- `max-height` + `overflow-y: auto` ensures it never goes off-screen regardless of content length
+- ✕ close button in the drag handle; Escape key still works
+
+**Audio settings restored**
+- Audio section (Microphone, Noise Suppression, Echo Cancellation, Auto Gain Control) was being hidden by the panel going off the top of the viewport; fixed by the panel position rework above
+
+---
+
 ## v0.12.0 — 2026-03-28
 
 ### Feat: video embeds, camera selection, device properties, paste fix, link font
