@@ -1,6 +1,6 @@
-# WebRTC
+# FreeRTC
 
-A small WebRTC demo app served over HTTPS with login, registration, chat, friends, camera, screen sharing, and an Electron desktop client.
+A self-hosted, peer-to-peer video and audio calling app with rich text chat, screen sharing, friends, and an Electron desktop client — served over HTTPS with session-based authentication.
 
 ## Project Layout
 
@@ -104,6 +104,48 @@ You can also:
 * add the other user as a friend
 * click `Invite` next to a friend's name to create a room and copy the link to your clipboard
 
+## Chat
+
+The in-room chat supports rich text, file attachments, emoji, and inline images.
+
+### Formatting
+
+| Action | How |
+|--------|-----|
+| Bold | Select text → toolbar, or `Ctrl+B` |
+| Italic | Select text → toolbar, or `Ctrl+I` |
+| Strikethrough | Select text → toolbar, or `Ctrl+Shift+X` |
+| Highlight | Select text → toolbar, or `Ctrl+Shift+H` |
+| Inline code | Select text → toolbar, or `` Ctrl+` `` |
+| Code block | Start a line with ` ``` ` |
+| Link | Select text → toolbar → paste URL |
+| Send | `Enter` |
+| Newline | `Shift+Enter` |
+
+### Emoji
+
+Click 😀 to open the emoji picker, or type `:shortcode:` (e.g. `:wave:`) directly in the input for inline autocomplete. Use ↑↓ to navigate suggestions and Enter to apply.
+
+### GIF support
+
+GIF search requires a [GIPHY API](https://developers.giphy.com) key (free, 100 req/hr beta tier). Add it to `config/secrets.json` — see the [Secrets](#secrets) section below.
+
+
+
+### File and image attachments
+
+Click 📎, drag files onto the input, or paste an image from the clipboard. Images up to ~5 MB are embedded inline. Other files are sent as downloadable cards. The server enforces a hard 5 MB limit per file.
+
+### Rebuilding the editor bundle
+
+The chat editor (Tiptap, DOMPurify, emoji-picker-element) is pre-bundled at `src/web/public/js/chat-editor.js`. If you modify `src/web/editor-src/index.js`, rebuild with:
+
+```bash
+npm run build:editor
+```
+
+This requires esbuild, which is included in the dev dependencies.
+
 ## Electron Desktop Client
 
 The Electron app is a desktop client for the HTTPS server. It does not replace the server, so the server must already be running.
@@ -131,7 +173,7 @@ After connecting, the desktop client opens the same login and room flow as the b
 
 ### Build the desktop app
 
-Building packages the Electron client into a standalone installer. The packaged app still requires a running WebRTC HTTPS server to connect to.
+Building packages the Electron client into a standalone installer. The packaged app still requires a running FreeRTC server to connect to.
 
 **Prerequisites:** The dev dependencies (`electron` and `electron-builder`) must be installed. They are included by default when you run the installer or `npm install`.
 
@@ -145,9 +187,9 @@ This produces platform-specific output in the `dist/` folder:
 
 | Platform | Target | Output |
 |----------|--------|--------|
-| Windows  | NSIS installer | `dist/WebRTC Desktop Setup x.x.x.exe` |
-| macOS    | DMG | `dist/WebRTC Desktop-x.x.x.dmg` |
-| Linux    | AppImage | `dist/WebRTC Desktop-x.x.x.AppImage` |
+| Windows  | NSIS installer | `dist/FreeRTC Setup x.x.x.exe` |
+| macOS    | DMG | `dist/FreeRTC-x.x.x.dmg` |
+| Linux    | AppImage | `dist/FreeRTC-x.x.x.AppImage` |
 
 **Build for a specific platform** (cross-compilation may require additional tooling):
 
@@ -164,11 +206,27 @@ npx electron-builder --linux
 
 **Note:** The build dependencies (`electron`, `electron-builder`) account for the majority of `npm audit` warnings. These are build-time only and do not affect the running server or browser clients. You can verify with `npm audit --omit=dev`.
 
+## Secrets
+
+API keys and other credentials go in `config/secrets.json`. This file is gitignored and never committed. The server merges it over `config/server.json` at startup.
+
+Create the file if it doesn't exist:
+
+```json
+{
+  "giphyApiKey": "YOUR_GIPHY_KEY_HERE"
+}
+```
+
+| Key | Where to get it |
+|-----|----------------|
+| `giphyApiKey` | [developers.giphy.com](https://developers.giphy.com) — free beta tier, 100 req/hr |
+
 ## Notes
 
 * `data/users.db` is created automatically the first time the app runs.
 * The server listens on `0.0.0.0`, so other devices on the same network can reach it.
-* The default port comes from `config/server.json`. You can also override it with the `PORT` environment variable before starting the server.
+* The default port comes from `config/server.json`. You can also override it with the `--port=` CLI argument or the `PORT` environment variable — argument takes highest priority.
 * The browser version will show a self-signed certificate warning the first time you connect.
 * This project uses public STUN servers and does not include a TURN server, so same-network testing is the simplest and most reliable setup.
 * Electron build output is written to the `dist` folder.
@@ -190,12 +248,12 @@ Runtime package dependencies:
 * `express`
 * `express-session`
 * `socket.io`
+* `@tiptap/starter-kit`, `@tiptap/extension-highlight`, `@tiptap/extension-image`, `@tiptap/extension-link`, `@tiptap/extension-placeholder` — rich text editor
+* `emoji-picker-element` — emoji picker
+* `dompurify` — HTML sanitization
 
-Desktop build dependencies:
+Desktop and editor build dependencies:
 
 * `electron`
 * `electron-builder`
-
-## Inspired By
-
-* https://medium.com/agora-io/how-does-webrtc-work-996748603141
+* `esbuild` — bundles the chat editor source

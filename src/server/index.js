@@ -18,9 +18,13 @@ const options = {
 };
 
 const server = https.createServer(options, app);
-const io = require('socket.io')(server);
+const io = require('socket.io')(server, { maxHttpBufferSize: 10e6 }); // 10MB — needed for inline images/screenshots
 const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-const PORT = process.env.PORT || config.port || 3000;
+// Merge secrets.json if present (gitignored — put real API keys there)
+const SECRETS_PATH = path.join(ROOT_DIR, 'config', 'secrets.json');
+if (fs.existsSync(SECRETS_PATH)) Object.assign(config, JSON.parse(fs.readFileSync(SECRETS_PATH, 'utf8')));
+const argPort = process.argv.find(a => a.startsWith('--port='))?.split('=')[1];
+const PORT = argPort || process.env.PORT || config.port || 3000;
 // Create the session middleware
 const sessionMiddleware = session({
     secret: 'your-secret-key',
@@ -159,6 +163,46 @@ app.get('/api/me', (req, res) => {
     res.json({ username: req.session.username });
 });
 
+app.get('/api/version', (req, res) => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf8'));
+    res.json({ version: pkg.version });
+});
+
+// ── GIPHY proxy endpoints (key stays server-side) ──
+async function fetchGiphy(path) {
+    const key = process.env.GIPHY_API_KEY || config.giphyApiKey;
+    if (!key || key.startsWith('REPLACE_')) return { error: 'not_configured' };
+    const res = await fetch(`https://api.giphy.com/v1/gifs/${path}&api_key=${key}&rating=g&limit=24`);
+    if (!res.ok) throw new Error(`GIPHY ${res.status}`);
+    const { data } = await res.json();
+    return data.map(g => ({
+        id:      g.id,
+        title:   g.title,
+        url:     g.images.fixed_height.url,
+        preview: g.images.preview_gif?.url || g.images.fixed_height_small?.url || g.images.fixed_height.url,
+        width:   Number(g.images.fixed_height.width),
+        height:  Number(g.images.fixed_height.height),
+    }));
+}
+
+app.get('/api/gifs/trending', requireAuth, async (req, res) => {
+    try {
+        const result = await fetchGiphy('trending?');
+        if (result.error) return res.status(503).json({ error: 'Add giphyApiKey to config/server.json' });
+        res.json(result);
+    } catch (e) { res.status(502).json({ error: e.message }); }
+});
+
+app.get('/api/gifs/search', requireAuth, async (req, res) => {
+    const q = String(req.query.q || '').trim().slice(0, 100);
+    if (!q) return res.redirect('/api/gifs/trending');
+    try {
+        const result = await fetchGiphy(`search?q=${encodeURIComponent(q)}&`);
+        if (result.error) return res.status(503).json({ error: 'Add giphyApiKey to config/server.json' });
+        res.json(result);
+    } catch (e) { res.status(502).json({ error: e.message }); }
+});
+
 // Rooms API
 app.post('/api/rooms', (req, res) => {
     const roomId = crypto.randomBytes(4).toString('hex');
@@ -186,6 +230,11 @@ io.use((socket, next) => {
 // Track online users: username -> Set of socket IDs
 const onlineUsers = new Map();
 
+// Track room membership: roomId -> Map<socketId, { username, mediaState }>
+const rooms = new Map();
+const messageReactions = new Map(); // roomId → Map<msgId, Map<emoji, Set<username>>>
+const messageOwners    = new Map(); // roomId → Map<msgId, username>
+
 // API endpoint for online status
 app.get('/api/online', (req, res) => {
     const usernames = Array.from(onlineUsers.keys());
@@ -207,9 +256,41 @@ io.on('connection', (socket) => {
     }
 
     socket.on('join-room', (roomId, userId) => {
+        // Enforce 2-person room limit
+        const room = rooms.get(roomId);
+        if (room && room.size >= 2 && !room.has(socket.id)) {
+            socket.emit('room-full');
+            return;
+        }
+
         socket.join(roomId);
-        const username = socket.request.session.username;
+        socket.data.roomId = roomId;
+
+        // Add to rooms map
+        if (!rooms.has(roomId)) {
+            rooms.set(roomId, new Map());
+        }
+        rooms.get(roomId).set(socket.id, { username, media: { audio: false, video: false, screen: false } });
+
+        // Send full participant list to everyone in the room
+        const participants = Object.fromEntries(rooms.get(roomId));
+        io.in(roomId).emit('room-participants', participants);
+
+        // Notify others that a new user connected
         socket.to(roomId).emit('user-connected', userId, username);
+    });
+
+    // Generic media-state-change: client sends { audio, video, screen } booleans
+    socket.on('media-state-change', (roomId, media) => {
+        const room = rooms.get(roomId);
+        if (!room || !room.has(socket.id)) return;
+        const participant = room.get(socket.id);
+        participant.media = {
+            audio: !!media.audio,
+            video: !!media.video,
+            screen: !!media.screen
+        };
+        io.in(roomId).emit('participant-updated', socket.id, participant);
     });
 
     socket.on('offer', (offer, roomId) => {
@@ -224,8 +305,32 @@ io.on('connection', (socket) => {
         socket.to(roomId).emit('ice-candidate', candidate);
     });
 
+    socket.on('send-room-invite', ({ toUsername, roomId }) => {
+        const targetSockets = onlineUsers.get(toUsername);
+        if (!targetSockets) return;
+        const roomLink = `/room/${roomId}`;
+        targetSockets.forEach(targetSocketId => {
+            io.to(targetSocketId).emit('room-invite', { fromUsername: username, roomId, roomLink });
+        });
+    });
+
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
+
+        // Clean up room membership
+        const roomId = socket.data.roomId;
+        if (roomId && rooms.has(roomId)) {
+            rooms.get(roomId).delete(socket.id);
+            if (rooms.get(roomId).size === 0) {
+                rooms.delete(roomId);
+                messageReactions.delete(roomId);
+                messageOwners.delete(roomId);
+            } else {
+                const participants = Object.fromEntries(rooms.get(roomId));
+                io.in(roomId).emit('room-participants', participants);
+            }
+        }
+
         if (username && onlineUsers.has(username)) {
             onlineUsers.get(username).delete(socket.id);
             if (onlineUsers.get(username).size === 0) {
@@ -235,14 +340,100 @@ io.on('connection', (socket) => {
         }
     });
 
-    // handler for chat messages
+    // handler for chat messages (rich text)
     socket.on('chat-message', (data) => {
         const username = socket.request.session.username;
-        // Broadcast to everyone in the room, including the sender
+        if (!data.roomId) return;
+        const msgId = data.msgId ? String(data.msgId).slice(0, 64) : null;
+        if (msgId) {
+            if (!messageOwners.has(data.roomId)) messageOwners.set(data.roomId, new Map());
+            messageOwners.get(data.roomId).set(msgId, username);
+        }
         io.in(data.roomId).emit('chat-message', {
-            username: username,
-            message: data.message
+            username,
+            message: data.message ? String(data.message).slice(0, 4096) : '',
+            html:    data.html    ? String(data.html).slice(0, 5242880)   : null, // 5MB — supports inline screenshots
+            msgId,
         });
+    });
+
+    // handler for file/image transfers (base64, max ~5 MB)
+    socket.on('file-message', (data) => {
+        const username = socket.request.session.username;
+        if (!data.roomId) return;
+        const dataStr = data.data ? String(data.data) : '';
+        if (dataStr.length > 7 * 1024 * 1024) return; // reject oversized payloads
+        const msgId = data.msgId ? String(data.msgId).slice(0, 64) : null;
+        if (msgId) {
+            if (!messageOwners.has(data.roomId)) messageOwners.set(data.roomId, new Map());
+            messageOwners.get(data.roomId).set(msgId, username);
+        }
+        io.in(data.roomId).emit('file-message', {
+            username,
+            filename: String(data.filename  || 'file').slice(0, 255),
+            mimeType: String(data.mimeType  || 'application/octet-stream').slice(0, 100),
+            data: dataStr,
+            size: Number(data.size) || 0,
+            msgId,
+        });
+    });
+
+    // handler for message edits (own messages only)
+    socket.on('edit-message', (data) => {
+        const username = socket.request.session.username;
+        const { roomId, msgId } = data;
+        if (!roomId || !msgId) return;
+        const safeId = String(msgId).slice(0, 64);
+        if (messageOwners.get(roomId)?.get(safeId) !== username) return;
+        const text = String(data.text || '').slice(0, 4096);
+        let html = '<p>' + text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'</p><p>') + '</p>';
+        // Re-attach any images (GIFs, inline images) that were in the original message
+        const rawImages = Array.isArray(data.images) ? data.images : [];
+        for (const src of rawImages.slice(0, 10)) {
+            const s = String(src);
+            if (s.startsWith('data:image/') || s.startsWith('https://')) {
+                html += `<img src="${s.replace(/"/g, '&quot;')}" style="max-width:100%">`;
+            }
+        }
+        io.in(roomId).emit('message-edited', { msgId: safeId, text, html });
+    });
+
+    // handler for message deletes (own messages only)
+    socket.on('delete-message', (data) => {
+        const username = socket.request.session.username;
+        const { roomId, msgId } = data;
+        if (!roomId || !msgId) return;
+        const safeId = String(msgId).slice(0, 64);
+        if (messageOwners.get(roomId)?.get(safeId) !== username) return;
+        messageOwners.get(roomId).delete(safeId);
+        messageReactions.get(roomId)?.delete(safeId);
+        io.in(roomId).emit('message-deleted', { msgId: safeId });
+    });
+
+    // handler for message reactions (any emoji, toggle per user)
+    socket.on('react-message', (data) => {
+        const username = socket.request.session.username;
+        const { roomId, msgId, emoji } = data;
+        if (!roomId || !msgId || !emoji) return;
+        const safeId    = String(msgId).slice(0, 64);
+        const safeEmoji = String(emoji).slice(0, 8);
+
+        if (!messageReactions.has(roomId)) messageReactions.set(roomId, new Map());
+        const roomRx = messageReactions.get(roomId);
+        if (!roomRx.has(safeId)) roomRx.set(safeId, new Map());
+        const msgRx = roomRx.get(safeId);
+        if (!msgRx.has(safeEmoji)) msgRx.set(safeEmoji, new Set());
+        const users = msgRx.get(safeEmoji);
+
+        if (users.has(username)) users.delete(username);
+        else users.add(username);
+        if (users.size === 0) msgRx.delete(safeEmoji);
+
+        // Build reactions summary: { emoji: { count, users[] } }
+        const reactions = {};
+        for (const [e, u] of msgRx) reactions[e] = { count: u.size, users: [...u] };
+
+        io.in(roomId).emit('message-reaction', { msgId: safeId, reactions, reactorUsername: username });
     });
 
     socket.on('user-stopped-stream', (roomId, userId) => {

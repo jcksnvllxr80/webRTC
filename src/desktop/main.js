@@ -1,6 +1,19 @@
-const { app, BrowserWindow, desktopCapturer, ipcMain, Menu, session } = require('electron');
+const { app, BrowserWindow, desktopCapturer, ipcMain, Menu, nativeImage, session, shell } = require('electron');
+app.name = 'FreeRTC';
 const path = require('path');
+const fs = require('fs');
 const https = require('https');
+
+// Load icon from file when available, otherwise use a white placeholder
+const iconPath = path.join(__dirname, '../web/public/icon.png');
+const appIcon = fs.existsSync(iconPath)
+    ? nativeImage.createFromPath(iconPath)
+    : (() => {
+        // 32x32 white RGBA buffer
+        const size = 32;
+        const buf = Buffer.alloc(size * size * 4, 255); // all 0xFF = opaque white
+        return nativeImage.createFromBuffer(buf, { width: size, height: size });
+    })();
 
 let mainWindow = null;
 let connectionWindow = null;
@@ -26,6 +39,8 @@ function createMenu() {
         });
     }
 
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../../package.json'), 'utf8'));
+
     template.push(
         {
             label: 'Connection',
@@ -47,6 +62,24 @@ function createMenu() {
                 { role: 'paste' },
                 { role: 'selectAll' }
             ]
+        },
+        {
+            label: 'Help',
+            submenu: [
+                {
+                    label: `FreeRTC v${pkg.version}`,
+                    enabled: false
+                },
+                { type: 'separator' },
+                {
+                    label: 'Documentation',
+                    click: () => shell.openExternal('https://github.com/jcksnvllxr80/FreeRTC#readme')
+                },
+                {
+                    label: 'GitHub Repository',
+                    click: () => shell.openExternal('https://github.com/jcksnvllxr80/FreeRTC')
+                }
+            ]
         }
     );
 
@@ -63,6 +96,7 @@ function createConnectionWindow() {
             preload: path.join(__dirname, 'preload.js')
         },
         title: 'Connect to Server',
+        icon: appIcon,
         resizable: false,
         minimizable: false,
         maximizable: false,
@@ -76,13 +110,14 @@ function createConnectionWindow() {
 function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
-        height: 800,
+        height: 960,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
             preload: path.join(__dirname, 'preload.js')
         },
-        title: 'WebRTC Desktop Client',
+        title: 'FreeRTC',
+        icon: appIcon,
         show: false
     });
 
@@ -245,6 +280,9 @@ ipcMain.handle('pick-display-source', async () => {
 });
 
 app.whenReady().then(() => {
+    if (process.platform === 'darwin' && app.dock) {
+        app.dock.setIcon(appIcon);
+    }
     configureDesktopPermissions();
     createMenu();
     createConnectionWindow();

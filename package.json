@@ -1,43 +1,58 @@
 {
-  "name": "webrtc",
-  "version": "0.5.2",
-  "description": "A little WebRTC sample project with hosted https server\n",
+  "name": "freertc",
+  "version": "0.11.3",
+  "description": "FreeRTC — self-hosted peer-to-peer video, audio, and chat\n",
   "main": "src/desktop/main.js",
   "scripts": {
     "start": "node src/server/index.js",
     "server": "node src/server/index.js",
     "electron": "electron .",
-    "build": "electron-builder"
+    "build": "electron-builder",
+    "build:editor": "esbuild src/web/editor-src/index.js --bundle --format=esm --target=es2020 --outfile=src/web/public/js/chat-editor.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@tiptap/extension-code-block-lowlight": "^3.20.5",
+    "@tiptap/extension-highlight": "^3.20.5",
+    "@tiptap/extension-image": "^3.20.5",
+    "@tiptap/extension-link": "^3.20.5",
+    "@tiptap/extension-placeholder": "^3.20.5",
+    "@tiptap/starter-kit": "^3.20.5",
     "bcrypt": "^5.1.1",
     "better-sqlite3": "^12.8.0",
+    "dompurify": "^3.3.3",
+    "emoji-picker-element": "^1.29.1",
     "express": "^5.1.0",
     "express-session": "^1.18.1",
+    "lowlight": "^3.3.0",
     "socket.io": "^4.8.1"
   },
   "build": {
     "appId": "com.yourapp.webrtc",
-    "productName": "WebRTC Desktop",
+    "productName": "FreeRTC",
     "npmRebuild": false,
     "files": [
-      "src/desktop/**/*"
+      "src/desktop/**/*",
+      "src/web/public/icon.png"
     ],
     "mac": {
-      "category": "public.app-category.video"
+      "category": "public.app-category.video",
+      "icon": "src/web/public/icon.icns"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "src/web/public/icon.ico"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "icon": "src/web/public/icon.png"
     }
   },
   "devDependencies": {
     "electron": "^35.2.1",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.27.4"
   }
 }

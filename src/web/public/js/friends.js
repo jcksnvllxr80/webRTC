@@ -3,6 +3,8 @@ import { isInRoom } from './room.js';
 
 let remoteUsername = null;
 let onlineSet = new Set();
+let recentInvites = []; // { fromUsername, roomId, roomLink, ts }
+let unreadInviteCount = 0;
 
 export function getRemoteUsername() {
     return remoteUsername;
@@ -15,12 +17,40 @@ export function setupFriendsListeners() {
     socket.on('user-online', (username) => {
         onlineSet.add(username);
         updateStatusDots(username, true);
+        updateInviteButtons(username, true);
     });
 
     socket.on('user-offline', (username) => {
         onlineSet.delete(username);
         updateStatusDots(username, false);
+        updateInviteButtons(username, false);
     });
+
+    // Incoming room invite
+    socket.on('room-invite', ({ fromUsername, roomId, roomLink }) => {
+        const invite = { fromUsername, roomId, roomLink, ts: Date.now() };
+        recentInvites.unshift(invite);
+        if (recentInvites.length > 10) recentInvites.pop();
+        unreadInviteCount++;
+        updateInviteBadge();
+        renderInviteList();
+        showInviteToast(invite);
+    });
+
+    // Bell toggle
+    const bellBtn = document.getElementById('invite-bell-btn');
+    const invitePanel = document.getElementById('invite-panel');
+    if (bellBtn) {
+        bellBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            invitePanel.hidden = !invitePanel.hidden;
+            if (!invitePanel.hidden) {
+                unreadInviteCount = 0;
+                updateInviteBadge();
+            }
+        });
+        document.addEventListener('click', () => { invitePanel.hidden = true; });
+    }
 
     if (isInRoom()) {
         socket.on('user-connected', (userId, username) => {
@@ -59,8 +89,7 @@ export function setupFriendsListeners() {
         }
     }
 
-    loadFriendsList();
-    loadOnlineUsers();
+    loadOnlineUsers().then(() => loadFriendsList());
 }
 
 async function loadOnlineUsers() {
@@ -71,6 +100,13 @@ async function loadOnlineUsers() {
     } catch (err) {
         console.error('Load online users error:', err);
     }
+}
+
+function updateInviteButtons(username, isOnline) {
+    document.querySelectorAll(`.invite-friend-btn[data-username="${CSS.escape(username)}"]`).forEach(btn => {
+        btn.disabled = !isOnline;
+        btn.title = isOnline ? '' : 'User is offline';
+    });
 }
 
 function updateStatusDots(username, isOnline) {
@@ -168,28 +204,28 @@ async function loadFriendsList() {
                 const btnGroup = document.createElement('span');
                 btnGroup.className = 'friend-actions';
 
-                if (!isInRoom()) {
+                if (isInRoom()) {
+                    const isOnline = onlineSet.has(f.friend_username);
                     const inviteBtn = document.createElement('button');
                     inviteBtn.className = 'invite-friend-btn';
                     inviteBtn.textContent = 'Invite';
-                    inviteBtn.addEventListener('click', async () => {
+                    inviteBtn.dataset.username = f.friend_username;
+                    if (!isOnline) {
                         inviteBtn.disabled = true;
-                        inviteBtn.textContent = 'Creating...';
-                        try {
-                            const res = await fetch('/api/rooms', { method: 'POST' });
-                            const { roomId } = await res.json();
-                            const link = `${window.location.origin}/room/${roomId}`;
-                            await navigator.clipboard.writeText(link);
-                            inviteBtn.textContent = 'Copied!';
-                            setTimeout(() => {
-                                inviteBtn.textContent = 'Invite';
-                                inviteBtn.disabled = false;
-                            }, 2000);
-                        } catch (err) {
-                            console.error('Invite error:', err);
+                        inviteBtn.title = 'User is offline';
+                    }
+                    inviteBtn.addEventListener('click', () => {
+                        if (!onlineSet.has(f.friend_username)) return;
+                        inviteBtn.disabled = true;
+                        socket.emit('send-room-invite', {
+                            toUsername: f.friend_username,
+                            roomId: state.roomId
+                        });
+                        inviteBtn.textContent = 'Sent!';
+                        setTimeout(() => {
                             inviteBtn.textContent = 'Invite';
                             inviteBtn.disabled = false;
-                        }
+                        }, 2000);
                     });
                     btnGroup.appendChild(inviteBtn);
                 }
@@ -222,4 +258,72 @@ async function loadFriendsList() {
             list.appendChild(li);
         });
     }
+}
+
+function updateInviteBadge() {
+    const badge = document.getElementById('invite-badge');
+    if (!badge) return;
+    if (unreadInviteCount > 0) {
+        badge.textContent = unreadInviteCount;
+        badge.hidden = false;
+    } else {
+        badge.hidden = true;
+    }
+}
+
+function renderInviteList() {
+    const ul = document.getElementById('invite-list');
+    if (!ul) return;
+    ul.innerHTML = '';
+    if (recentInvites.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'invite-empty';
+        li.textContent = 'No recent invites';
+        ul.appendChild(li);
+        return;
+    }
+    recentInvites.forEach((invite, idx) => {
+        const li = document.createElement('li');
+        li.className = 'invite-item';
+        const text = document.createElement('span');
+        text.textContent = `${invite.fromUsername} invited you to a room`;
+        const acceptBtn = document.createElement('button');
+        acceptBtn.textContent = 'Join';
+        acceptBtn.addEventListener('click', () => {
+            window.location.href = invite.roomLink;
+        });
+        const dismissBtn = document.createElement('button');
+        dismissBtn.textContent = '✕';
+        dismissBtn.className = 'invite-dismiss';
+        dismissBtn.addEventListener('click', () => {
+            recentInvites.splice(idx, 1);
+            renderInviteList();
+        });
+        li.appendChild(text);
+        li.appendChild(acceptBtn);
+        li.appendChild(dismissBtn);
+        ul.appendChild(li);
+    });
+}
+
+function showInviteToast(invite) {
+    const container = document.getElementById('invite-toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'invite-toast';
+    toast.innerHTML = `
+        <span><strong>${invite.fromUsername}</strong> invited you to a room</span>
+        <div class="invite-toast-actions">
+            <button class="invite-toast-accept">Join</button>
+            <button class="invite-toast-dismiss">Dismiss</button>
+        </div>
+    `;
+    toast.querySelector('.invite-toast-accept').addEventListener('click', () => {
+        window.location.href = invite.roomLink;
+    });
+    toast.querySelector('.invite-toast-dismiss').addEventListener('click', () => {
+        toast.remove();
+    });
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 12000);
 }

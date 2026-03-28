@@ -94,9 +94,112 @@
   - Long: 400-700ms — (not currently used, reserve for future modals)
 - **Principle:** If the user can't tell why it's animating, remove it. Every transition should answer "what changed?"
 
+## Component: Rich Text Chat Input
+
+### Input Container
+Replaces `<input type="text" id="message-input">`. The container is the border/focus surface — the editable area and action bar live inside it as siblings.
+
+- **Structure:** `contenteditable` div + bottom action bar, wrapped in a single bordered container
+- **Sizing:** min-height 1 line (38px); auto-expands to 5 lines; scrolls beyond
+- **Focus state:** `border-color: var(--c-accent)` + `box-shadow: 0 0 0 2px var(--c-accent-muted)`
+- **Font:** Geist 400 13px (text-sm scale), 1.5 line-height
+- **Background:** `var(--c-elevated)` — matches existing input
+
+**Action bar** (inside container, `border-top: 1px solid var(--c-border-subtle)`):
+- Left: 😀 emoji button · GIF button (Geist Mono 11px label) · 📎 attach button
+- All action buttons: 28×28px, no border, `var(--c-text-secondary)` default, `var(--c-accent)` on hover
+- Right: hint text `↵ send · ⇧↵ newline` in `var(--c-text-muted)` · Send button (accent fill, same as current)
+
+**Attachment preview row** (shown only when files are queued, above the editable area):
+- 56×56px thumbnails
+- Image thumbs: actual preview; file thumbs: file-type label in Geist Mono + accent color
+- Each thumb has an ✕ remove button (16×16px, top-right, dark overlay background)
+
+### Floating Formatting Toolbar
+Appears above any text selection. Disappears on deselect or click-away. No persistent chrome.
+
+- **Background:** `var(--c-overlay)` (`#2e2e2e`)
+- **Border:** `1px solid var(--c-border)` + `box-shadow: 0 4px 16px rgba(0,0,0,0.5)`
+- **Border-radius:** `var(--r-sm)` (4px)
+- **Caret:** 8×8px rotated square below toolbar pointing to selection
+- **Button size:** 28×26px, `var(--c-text-secondary)` default, `var(--c-text)` on hover
+- **Active state:** `background: var(--c-accent-muted)`, `color: var(--c-accent)`
+- **Button order:** B · I · S̶ · ─── · ` · ≡ · ─── · H · " · 🔗
+  - B = bold, I = italic, S̶ = strikethrough, ` = inline code, ≡ = code block, H = highlight, " = blockquote, 🔗 = link
+
+### Message Rendering in Feed
+All rendered as HTML in the messages div. Current `<p>` structure is retained; formatting renders inline.
+
+| Format | Element | Style |
+|--------|---------|-------|
+| Bold | `<strong>` | `font-weight: 700`, inherits text color |
+| Italic | `<em>` | `font-style: italic`, color `#c8c8c8` |
+| Strikethrough | `<s>` | `text-decoration: line-through`, `var(--c-text-muted)` |
+| Highlight | `<mark>` | bg `var(--c-accent-muted)`, color `var(--c-accent)`, padding `1px 3px`, `border-radius: 2px` |
+| Inline code | `<code>` | Geist Mono 12px, bg `var(--c-base)`, border `1px solid var(--c-border)`, color `var(--c-accent)`, padding `1px 5px`, `border-radius: 3px` |
+| Code block | `<pre><code>` | Geist Mono 12px, bg `var(--c-base)`, border `1px solid var(--c-border)`, `border-radius: var(--r-sm)`, text color `#c8e6c9` (terminal green), lang label top-right in `var(--c-text-muted)` |
+| Blockquote | `<blockquote>` | `border-left: 3px solid var(--c-accent)`, bg `var(--c-base)`, `border-radius: 0 3px 3px 0`, italic, `var(--c-text-secondary)` |
+| Image | `<img>` | max-width `280px`, max-height `180px`, `border-radius: var(--r-sm)`, `border: 1px solid var(--c-border-subtle)` |
+| GIF | `<img>` | Same as image; small `GIF` badge (Geist Mono 9px, overlay bg, accent text) in top-right corner |
+| File attachment | custom card | bg `var(--c-base)`, border, file icon + name + size + ghost download button |
+
+### Emoji
+Two entry points:
+
+1. **😀 button → picker panel**
+   - Library: `emoji-picker-element` (web component, ~12KB, no dependencies)
+   - Width: 280px, bg `var(--c-overlay)`, border, `border-radius: var(--r-md)`
+   - Layout: search input → category tabs (icon row) → section label → 8-column emoji grid
+   - Category tabs: 28×24px icon buttons, 50% opacity default, full opacity + accent-muted bg on active
+   - Emoji buttons: 30×30px, scale(1.2) on hover, 80ms transition
+   - Max grid height: 200px, overflow-y scroll
+
+2. **`:shortcode:` autocomplete**
+   - Trigger: typing `:` followed by at least one character
+   - Dropdown: `var(--c-overlay)` bg, border, `var(--r-sm)`, 220px wide
+   - Each row: emoji glyph (18px) + `:name:` label (matched chars in accent color)
+   - Selected row: `var(--c-accent-muted)` background
+   - Navigation: ↑↓ keys, ↵ to insert, Esc to dismiss
+
+### GIF Search
+- Trigger: GIF button in action bar
+- API: GIPHY (free beta key at developers.giphy.com — Tenor discontinued new registrations Jan 2026, keys expire Jun 2026)
+- Panel: same overlay bg + border + shadow as emoji panel
+- Layout: search input → masonry/grid of GIF previews
+- Clicking a GIF: closes panel, inserts GIF inline in the message being composed
+
+### File Attachment
+- Entry: 📎 button OR drag-and-drop anywhere on the chat container OR clipboard paste (images)
+- Queued files appear as thumbnails in the attachment preview row above the editable area
+- On send: files are uploaded/transferred; messages render the file card or inline image
+
+### Keyboard Shortcuts
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+B` | Bold |
+| `Ctrl+I` | Italic |
+| `Ctrl+Shift+X` | Strikethrough |
+| `` Ctrl+` `` | Inline code |
+| `` Ctrl+Shift+` `` | Code block |
+| `Ctrl+Shift+H` | Highlight |
+| `Ctrl+Shift+B` | Blockquote |
+| `Ctrl+K` | Insert link |
+| `Enter` | Send message |
+| `Shift+Enter` | Line break within message |
+| `:name` | Emoji autocomplete trigger |
+| `Esc` | Dismiss picker / autocomplete |
+
+### Libraries
+- **Rich text engine:** [Tiptap](https://tiptap.dev) — ProseMirror-based, vanilla JS compatible, tree-shakable. Use `@tiptap/core` + individual extension packages.
+- **Emoji picker:** [emoji-picker-element](https://github.com/nolanlawson/emoji-picker-element) — web component, ~12KB, fully styleable via CSS custom properties and `::part()` selectors.
+- **GIF search:** GIPHY API — free beta tier (100 req/hr), get a key at developers.giphy.com. Config key: `giphyApiKey` in `config/server.json`.
+
+---
+
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
 | 2026-03-24 | Initial design system created | Created by /design-consultation — Retro-Futuristic/Industrial aesthetic chosen to match the personal hacker-tool identity. Geist font family for unified sans/mono pairing. Greenyellow accent preserved from existing codebase as signature color. |
 | 2026-03-24 | Dark mode as default | Product is a developer/hacker tool — dark mode is the natural default. Light mode supported but secondary. |
 | 2026-03-24 | Minimal decoration | Let the content (video streams, chat) dominate. UI should be invisible infrastructure, not decoration. |
+| 2026-03-26 | Rich text chat input spec added | Floating toolbar on selection (vs persistent toolbar) chosen to preserve the minimal, tool-like aesthetic. Tiptap over Quill — tree-shakable, actively maintained, better vanilla JS DX. emoji-picker-element over emoji-mart — web component with no React dep. GIPHY over Tenor — Tenor closed new registrations Jan 2026 and will shut down Jun 2026; GIPHY free beta tier is the practical replacement. Action bar designed as first-class bottom edge of input container, not bolted on. |

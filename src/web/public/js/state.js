@@ -8,8 +8,26 @@ export const state = {
     peerConnection: null,
     localStream: null,
     remoteStream: null,
-    roomId: getRoomIdFromUrl()
+    roomId: getRoomIdFromUrl(),
+    media: { audio: false, video: false, screen: false },
+    participants: new Map(),   // socketId -> { username, media }
+    audioStream: null,         // mic-only stream (separate from localStream which holds video)
+    screenAudioSender: null,   // RTCRtpSender for screen-share audio track (if any)
+    audioSettings: loadAudioSettings()
 };
+
+function loadAudioSettings() {
+    const defaults = { noiseSuppression: true, echoCancellation: true, autoGainControl: true };
+    try {
+        const saved = JSON.parse(localStorage.getItem('webrtc-audio-settings'));
+        if (saved) return { ...defaults, ...saved };
+    } catch { /* ignore */ }
+    return defaults;
+}
+
+export function saveAudioSettings() {
+    localStorage.setItem('webrtc-audio-settings', JSON.stringify(state.audioSettings));
+}
 
 export const servers = {
     iceServers: [
