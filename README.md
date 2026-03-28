@@ -45,32 +45,6 @@ Create the file on your server (Ansible does this automatically — this is only
 | `turnUser` / `turnCredential` | TURN authentication | Must match `coturn/turnserver.conf` |
 | `giphyApiKey` | GIF search in chat | [developers.giphy.com](https://developers.giphy.com) — free, 100 req/hr |
 
-## Chat
-
-| Action | How |
-|--------|-----|
-| Bold | `Ctrl+B` or toolbar |
-| Italic | `Ctrl+I` or toolbar |
-| Strikethrough | `Ctrl+Shift+X` or toolbar |
-| Highlight | `Ctrl+Shift+H` or toolbar |
-| Inline code | `` Ctrl+` `` or toolbar |
-| Code block | Start a line with ` ``` ` |
-| Link | Select text → toolbar → paste URL |
-| Send | `Enter` |
-| Newline | `Shift+Enter` |
-
-**Emoji** — Click 😀 or type `:shortcode:` (e.g. `:wave:`) for inline autocomplete.
-
-**GIF search** — Requires a `giphyApiKey` in `config/secrets.json`.
-
-**Files and images** — Click 📎, drag onto the input, or paste from clipboard. Images embed inline; other files send as downloadable cards.
-
-**Rebuilding the editor** — The chat editor is pre-bundled. If you modify `src/web/editor-src/index.js`:
-
-```bash
-npm run build:editor
-```
-
 ## Electron Desktop Client
 
 The desktop app is a native wrapper that connects to your FreeRTC server. Before building, set the server URL in `config/client.json`:
@@ -110,3 +84,11 @@ npx electron-builder --linux
 ```
 
 Install it like any other app. On first launch, enter your server's domain or IP and port `8001` in the connection window, then log in as normal.
+
+---
+
+## Links
+
+- [Feature Reference](design/FEATURES.md) — video, audio, and chat feature details
+- [Deployment Guide](deployment/DEPLOYMENT.md) — full AWS setup with Terraform and Ansible
+- [Design System](design/DESIGN.md) — fonts, colors, and UI conventions
