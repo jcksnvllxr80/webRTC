@@ -1,5 +1,56 @@
 # Release Notes
 
+## v0.12.1 — 2026-03-28
+
+### Fix: camera picker modal, draggable settings panel, audio settings restored
+
+**Camera picker rework**
+- Replaced the small floating tooltip with a proper centered modal: dark overlay with blur, animated card, full-width camera buttons with icon and label, ✕ close button, Cancel button, and click-backdrop-to-dismiss
+
+**Draggable settings panel**
+- Settings panel is now a `position: fixed` floating panel — no longer anchored above the gear button where it could be clipped off-screen
+- Drag handle at the top lets you move it anywhere on screen; position is saved to `localStorage` and restored on next open
+- Opens to the bottom-right corner by default when no saved position exists
+- `max-height` + `overflow-y: auto` ensures it never goes off-screen regardless of content length
+- ✕ close button in the drag handle; Escape key still works
+
+**Audio settings restored**
+- Audio section (Microphone, Noise Suppression, Echo Cancellation, Auto Gain Control) was being hidden by the panel going off the top of the viewport; fixed by the panel position rework above
+
+---
+
+## v0.12.0 — 2026-03-28
+
+### Feat: video embeds, camera selection, device properties, paste fix, link font
+
+**Video link embedding**
+- YouTube (`youtube.com`, `youtu.be`) and Vimeo links sent in chat auto-render as embedded iframes below the link
+- Uses `youtube-nocookie.com` for YouTube privacy; embeds are lazy-loaded at 16:9 aspect ratio
+
+**Camera source selection**
+- Settings panel (⚙️) now includes a Camera dropdown — pick from any connected camera before or between streams
+- Also includes a Microphone dropdown for selecting the active input device
+- Dropdowns populate on load and refresh with device labels after permissions are granted
+- `devicechange` events keep the list current if you plug/unplug a device mid-session
+
+**Camera picker on Start Camera**
+- Clicking "Start Camera" now shows an inline popup listing all available cameras when more than one is detected — click to choose and start
+- Single-camera machines skip the picker and start immediately
+
+**Live camera property sliders**
+- After starting the camera, a "Camera Properties" section appears in the settings panel with sliders for any device-supported properties: brightness, contrast, saturation, sharpness, zoom, exposure time
+- Changes apply live via `track.applyConstraints()` with no need to restart the stream
+- Section is hidden automatically if the browser or device exposes no adjustable properties
+
+**Fix: text paste broken in chat**
+- Plain text paste was being swallowed by the async Clipboard API fallback — it called `event.preventDefault()` before confirming an image was found, blocking all text paste
+- Fixed: the fallback now checks for `text/plain` / `text/html` in `clipboardData.items` first and skips the async path if text content is present
+
+**Fix: chat link font size**
+- Links in chat messages are now rendered 1px larger (14px vs the inherited 13px body text) for easier tap/click targets
+
+---
+
 ## v0.11.3 — 2026-03-27
 
 ### Fix: invite button not updating when friend comes online

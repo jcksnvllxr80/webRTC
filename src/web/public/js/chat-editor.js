@@ -34021,8 +34021,8 @@ function createChatEditor({ editableEl, onSubmit }) {
         }
       }
     }
-    if (navigator.clipboard?.read) {
-      event.preventDefault();
+    const hasTextInItems = Array.from(items || []).some((i) => i.type === "text/plain" || i.type === "text/html");
+    if (!hasTextInItems && navigator.clipboard?.read) {
       navigator.clipboard.read().then((clipItems) => {
         for (const ci of clipItems) {
           const imgType = ci.types.find((t) => t.startsWith("image/"));
@@ -34035,7 +34035,7 @@ function createChatEditor({ editableEl, onSubmit }) {
         }
       }).catch(() => {
       });
-      return true;
+      return false;
     }
     return false;
   }

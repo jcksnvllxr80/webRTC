@@ -206,9 +206,11 @@ export function createChatEditor({ editableEl, onSubmit }) {
         }
       }
     }
-    // 3. Async Clipboard API fallback (Electron screenshots often land here)
-    if (navigator.clipboard?.read) {
-      event.preventDefault();
+    // 3. Async Clipboard API fallback (Electron screenshots often land here).
+    // Only attempt this when items was empty/unavailable — if items has text content
+    // we must let the default paste proceed instead of blocking it.
+    const hasTextInItems = Array.from(items || []).some(i => i.type === 'text/plain' || i.type === 'text/html');
+    if (!hasTextInItems && navigator.clipboard?.read) {
       navigator.clipboard.read().then(clipItems => {
         for (const ci of clipItems) {
           const imgType = ci.types.find(t => t.startsWith('image/'));
@@ -220,7 +222,8 @@ export function createChatEditor({ editableEl, onSubmit }) {
           }
         }
       }).catch(() => {});
-      return true;
+      // Don't preventDefault here — if no image is found the paste falls through naturally
+      return false;
     }
     return false;
   }
