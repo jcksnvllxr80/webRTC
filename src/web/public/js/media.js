@@ -32,11 +32,16 @@ function getElectronDesktopConstraints(sourceId) {
 
 export function getVideoConstraints() {
     const val = document.getElementById('resolution-select').value;
-    if (val === 'native') {
-        return true;
-    }
-    const [w, h] = val.split('x').map(Number);
-    return { width: { ideal: w }, height: { ideal: h } };
+    const deviceId = document.getElementById('camera-select')?.value;
+    const base = val === 'native'
+        ? {}
+        : { width: { ideal: Number(val.split('x')[0]) }, height: { ideal: Number(val.split('x')[1]) } };
+    if (deviceId) base.deviceId = { exact: deviceId };
+    return Object.keys(base).length ? base : true;
+}
+
+function getAudioDeviceId() {
+    return document.getElementById('mic-select')?.value || undefined;
 }
 
 function broadcastMediaState() {
@@ -49,11 +54,14 @@ function hasAnyMedia() {
 }
 
 function getAudioConstraints() {
-    return {
+    const c = {
         noiseSuppression: state.audioSettings.noiseSuppression,
         echoCancellation: state.audioSettings.echoCancellation,
         autoGainControl: state.audioSettings.autoGainControl
     };
+    const deviceId = getAudioDeviceId();
+    if (deviceId) c.deviceId = { exact: deviceId };
+    return c;
 }
 
 // Join audio — mic only
@@ -134,6 +142,7 @@ export async function initCamera() {
 
         state.media.video = true;
         broadcastMediaState();
+        buildCameraProps(videoTrack);
     } catch (error) {
         console.error('Error accessing camera:', error);
         alert(formatMediaError('Could not access camera', error));
@@ -285,4 +294,103 @@ export async function reapplyAudioSettings() {
 export function stopCamera() {
     stopVideo();
     leaveAudio();
+}
+
+// ── Camera device properties (brightness, contrast, zoom, etc.) ──
+const CAMERA_PROP_LABELS = {
+    brightness:  'Brightness',
+    contrast:    'Contrast',
+    saturation:  'Saturation',
+    sharpness:   'Sharpness',
+    zoom:        'Zoom',
+    exposureTime:'Exposure Time',
+    whiteBalanceMode: null, // skip — non-numeric
+    focusMode:   null,      // skip — non-numeric
+};
+
+function buildCameraProps(track) {
+    const container = document.getElementById('camera-props');
+    const slidersEl = document.getElementById('camera-props-sliders');
+    if (!container || !slidersEl) return;
+
+    slidersEl.innerHTML = '';
+
+    const caps = track.getCapabilities?.();
+    if (!caps) { container.style.display = 'none'; return; }
+
+    let count = 0;
+    for (const [prop, label] of Object.entries(CAMERA_PROP_LABELS)) {
+        if (!label || !(prop in caps)) continue;
+        const range = caps[prop];
+        if (typeof range.min !== 'number' || typeof range.max !== 'number' || range.min === range.max) continue;
+
+        const current = track.getSettings?.()?.[prop] ?? range.min;
+        count++;
+
+        const row = document.createElement('div');
+        row.className = 'camera-prop-row';
+
+        const labelRow = document.createElement('div');
+        labelRow.className = 'camera-prop-label';
+        const nameEl = document.createElement('span');
+        nameEl.textContent = label;
+        const valEl = document.createElement('span');
+        valEl.textContent = Number(current).toFixed(range.step < 1 ? 2 : 0);
+        labelRow.appendChild(nameEl);
+        labelRow.appendChild(valEl);
+
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.className = 'camera-prop-slider';
+        slider.min = range.min;
+        slider.max = range.max;
+        slider.step = range.step ?? 1;
+        slider.value = current;
+
+        slider.addEventListener('input', () => {
+            const v = Number(slider.value);
+            valEl.textContent = v.toFixed(range.step < 1 ? 2 : 0);
+            track.applyConstraints({ advanced: [{ [prop]: v }] }).catch(() => {});
+        });
+
+        row.appendChild(labelRow);
+        row.appendChild(slider);
+        slidersEl.appendChild(row);
+    }
+
+    container.style.display = count > 0 ? 'block' : 'none';
+}
+
+// Enumerate cameras and mics; populate the dropdowns in the settings panel
+export async function populateDeviceSelects() {
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cameraSelect = document.getElementById('camera-select');
+        const micSelect = document.getElementById('mic-select');
+        if (!cameraSelect || !micSelect) return;
+
+        const cameras = devices.filter(d => d.kind === 'videoinput');
+        const mics    = devices.filter(d => d.kind === 'audioinput');
+
+        cameraSelect.innerHTML = cameras.length === 0 ? '<option value="">No cameras found</option>' : '';
+        for (const cam of cameras) {
+            const opt = document.createElement('option');
+            opt.value = cam.deviceId;
+            opt.textContent = cam.label || `Camera ${cameraSelect.options.length + 1}`;
+            cameraSelect.appendChild(opt);
+        }
+
+        micSelect.innerHTML = mics.length === 0 ? '<option value="">No mics found</option>' : '';
+        for (const mic of mics) {
+            const opt = document.createElement('option');
+            opt.value = mic.deviceId;
+            opt.textContent = mic.label || `Microphone ${micSelect.options.length + 1}`;
+            micSelect.appendChild(opt);
+        }
+    } catch { /* permissions not yet granted — dropdowns stay empty until first use */ }
+}
+
+// After permissions granted, re-populate (labels become available)
+export function refreshDeviceLabels() {
+    populateDeviceSelects().catch(() => {});
 }

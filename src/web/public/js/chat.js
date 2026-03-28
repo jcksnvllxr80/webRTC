@@ -345,6 +345,8 @@ function addMessageToChat(username, html, text, msgId) {
 
     if (isOwn) msg.querySelector('.msg-header').appendChild(buildControls(id, true));
 
+    embedVideoLinks(msg.querySelector('.msg-body'));
+
     const bar = document.createElement('div');
     bar.className = 'msg-reactions';
     attachReactionTrigger(bar, id);
@@ -414,6 +416,45 @@ function addFileToChat(username, { filename, mimeType, data, size, msgId }) {
     msg.appendChild(bar);
     messagesDiv.appendChild(msg);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+// ── Video link embedding ──
+function getVideoEmbedSrc(url) {
+    try {
+        const u = new URL(url);
+        const host = u.hostname.replace(/^www\./, '');
+        // YouTube
+        if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+            const v = u.searchParams.get('v');
+            if (v) return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(v)}`;
+        }
+        if (host === 'youtu.be') {
+            const v = u.pathname.slice(1).split('/')[0];
+            if (v) return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(v)}`;
+        }
+        // Vimeo
+        if (host === 'vimeo.com') {
+            const m = u.pathname.match(/^\/(\d+)/);
+            if (m) return `https://player.vimeo.com/video/${m[1]}`;
+        }
+    } catch { /* ignore malformed URLs */ }
+    return null;
+}
+
+function embedVideoLinks(bodyEl) {
+    bodyEl.querySelectorAll('a[href]').forEach(a => {
+        const src = getVideoEmbedSrc(a.href);
+        if (!src) return;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'chat-video-embed';
+        const iframe = document.createElement('iframe');
+        iframe.src = src;
+        iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+        iframe.allowFullscreen = true;
+        iframe.loading = 'lazy';
+        wrapper.appendChild(iframe);
+        a.parentNode.insertBefore(wrapper, a.nextSibling);
+    });
 }
 
 // ── Image lightbox ──
