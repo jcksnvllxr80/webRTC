@@ -825,6 +825,40 @@ body{
     cursor: pointer;
 }
 
+/* ── Mic volume + VU meter ── */
+.mic-vol-group{
+    display: flex;
+    align-items: center;
+    gap: var(--sp-xs);
+    flex: 1;
+}
+.setting-range{
+    flex: 1;
+    accent-color: var(--c-accent);
+    cursor: pointer;
+}
+.setting-range-val{
+    font-size: var(--text-xs);
+    color: var(--c-accent);
+    font-family: var(--font-mono);
+    min-width: 36px;
+    text-align: right;
+}
+.vu-meter{
+    flex: 1;
+    height: 8px;
+    background: var(--c-overlay);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.vu-bar{
+    height: 100%;
+    width: 0%;
+    background: var(--c-accent);
+    border-radius: 4px;
+    transition: width 60ms linear;
+}
+
 /* ── Toggle switch ── */
 .toggle{
     position: relative;

@@ -135,6 +135,17 @@
                                 <select id="mic-select" class="setting-select"></select>
                             </div>
                             <div class="setting-row">
+                                <label for="mic-volume" class="setting-label">Mic Volume</label>
+                                <div class="mic-vol-group">
+                                    <input type="range" id="mic-volume" class="setting-range" min="0" max="2" step="0.05" value="1">
+                                    <span id="mic-volume-val" class="setting-range-val">100%</span>
+                                </div>
+                            </div>
+                            <div class="setting-row">
+                                <span class="setting-label">Input Level</span>
+                                <div class="vu-meter"><div class="vu-bar" id="mic-vu-bar"></div></div>
+                            </div>
+                            <div class="setting-row">
                                 <span>Noise Suppression</span>
                                 <label class="toggle"><input type="checkbox" id="toggle-ns" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
                             </div>
