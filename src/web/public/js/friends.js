@@ -206,11 +206,15 @@ async function loadFriendsList() {
 
                 if (isInRoom()) {
                     const isOnline = onlineSet.has(f.friend_username);
+                    const isInRoomWithYou = [...state.participants.values()].some(p => p.username === f.friend_username);
                     const inviteBtn = document.createElement('button');
                     inviteBtn.className = 'invite-friend-btn';
                     inviteBtn.textContent = 'Invite';
                     inviteBtn.dataset.username = f.friend_username;
-                    if (!isOnline) {
+                    if (isInRoomWithYou) {
+                        inviteBtn.disabled = true;
+                        inviteBtn.title = 'Already in the room with you';
+                    } else if (!isOnline) {
                         inviteBtn.disabled = true;
                         inviteBtn.title = 'User is offline';
                     }

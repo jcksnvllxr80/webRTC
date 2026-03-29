@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.13.3 — 2026-03-28
+
+### Fix: disable invite button when friend is already in the room
+
+- Invite button is now disabled with tooltip "Already in the room with you" when a friend is already a participant in the current room
+- Prevents redundant invites mid-call
+
+---
+
 ## v0.13.2 — 2026-03-28
 
 ### Chore: consolidated deployment directory, README cleanup
