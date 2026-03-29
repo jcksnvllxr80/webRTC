@@ -44,6 +44,45 @@ function getAudioDeviceId() {
     return document.getElementById('mic-select')?.value || undefined;
 }
 
+// ── Web Audio pipeline (mic volume + VU meter) ────────────────────────────────
+let audioCtx = null;
+let gainNode = null;
+let analyserNode = null;
+let micSourceNode = null;
+let audioDestination = null; // MediaStreamAudioDestinationNode — processed stream sent to peer
+
+function setupAudioPipeline(rawStream) {
+    audioCtx = new AudioContext();
+    gainNode = audioCtx.createGain();
+    gainNode.gain.value = state.audioSettings.micVolume ?? 1.0;
+    analyserNode = audioCtx.createAnalyser();
+    analyserNode.fftSize = 256;
+    audioDestination = audioCtx.createMediaStreamDestination();
+
+    micSourceNode = audioCtx.createMediaStreamSource(rawStream);
+    micSourceNode.connect(gainNode);
+    gainNode.connect(analyserNode);
+    analyserNode.connect(audioDestination);
+
+    return audioDestination.stream;
+}
+
+function teardownAudioPipeline() {
+    if (micSourceNode) { micSourceNode.disconnect(); micSourceNode = null; }
+    if (gainNode) { gainNode.disconnect(); gainNode = null; }
+    if (analyserNode) { analyserNode.disconnect(); analyserNode = null; }
+    if (audioDestination) { audioDestination.disconnect(); audioDestination = null; }
+    if (audioCtx) { audioCtx.close().catch(() => {}); audioCtx = null; }
+}
+
+export function setMicVolume(value) {
+    if (gainNode) gainNode.gain.value = value;
+}
+
+export function getMicAnalyser() {
+    return analyserNode;
+}
+
 function broadcastMediaState() {
     socket.emit('media-state-change', state.roomId, state.media);
     updateControlsForMediaState();
@@ -73,8 +112,9 @@ export async function initAudio() {
         });
 
         ensurePeerConnection();
-        state.audioStream.getTracks().forEach(track => {
-            state.peerConnection.addTrack(track, state.audioStream);
+        const processedStream = setupAudioPipeline(state.audioStream);
+        processedStream.getTracks().forEach(track => {
+            state.peerConnection.addTrack(track, processedStream);
         });
 
         state.media.audio = true;
@@ -100,6 +140,7 @@ export function leaveAudio() {
         }
         state.audioStream = null;
     }
+    teardownAudioPipeline();
 
     state.media.audio = false;
     broadcastMediaState();
@@ -193,7 +234,7 @@ export async function shareScreen() {
                 : { width: { ideal: Number(val.split('x')[0]) }, height: { ideal: Number(val.split('x')[1]) } };
             newStream = await navigator.mediaDevices.getDisplayMedia({
                 video: videoConstraints,
-                audio: true
+                audio: { suppressLocalAudioPlayback: true }
             });
         }
 
@@ -236,6 +277,18 @@ export function stopVideo() {
 
     state.media.video = false;
     state.media.screen = false;
+
+    // If mic audio was active, ensure its processed track is still connected to the
+    // peer connection — renegotiation after removing screen tracks can silently drop it.
+    if (state.media.audio && audioDestination && state.peerConnection) {
+        const senders = state.peerConnection.getSenders();
+        for (const track of audioDestination.stream.getAudioTracks()) {
+            if (!senders.some(s => s.track === track)) {
+                state.peerConnection.addTrack(track, audioDestination.stream);
+            }
+        }
+    }
+
     broadcastMediaState();
 
     if (!hasAnyMedia()) {
@@ -279,12 +332,12 @@ export async function reapplyAudioSettings() {
         return;
     }
 
-    // Swap the track in the peer connection sender (if connected)
-    if (state.peerConnection) {
-        const sender = state.peerConnection.getSenders().find(s => s.track === oldTrack);
-        if (sender) {
-            await sender.replaceTrack(newTrack);
-        }
+    // Swap the source node in the audio pipeline so the processed track (in the
+    // peer connection sender) continues without interruption.
+    if (audioCtx && gainNode && micSourceNode) {
+        micSourceNode.disconnect();
+        micSourceNode = audioCtx.createMediaStreamSource(newStream);
+        micSourceNode.connect(gainNode);
     }
 
     // Update the audioStream reference
@@ -384,11 +437,20 @@ export async function populateDeviceSelects() {
             cameraSelect.appendChild(opt);
         }
 
+        // Detect the OS-default mic by probing getUserMedia and reading back the chosen deviceId
+        let defaultMicId = null;
+        try {
+            const probe = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            defaultMicId = probe.getAudioTracks()[0]?.getSettings()?.deviceId || null;
+            probe.getTracks().forEach(t => t.stop());
+        } catch { /* permissions not yet granted — fall back to first in list */ }
+
         micSelect.innerHTML = mics.length === 0 ? '<option value="">No mics found</option>' : '';
         for (const mic of mics) {
             const opt = document.createElement('option');
             opt.value = mic.deviceId;
             opt.textContent = mic.label || `Microphone ${micSelect.options.length + 1}`;
+            if (defaultMicId && mic.deviceId === defaultMicId) opt.selected = true;
             micSelect.appendChild(opt);
         }
     } catch { /* permissions not yet granted — dropdowns stay empty until first use */ }

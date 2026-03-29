@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.15.0 — 2026-03-28
+
+### Feat: mic volume slider and VU meter in audio settings
+
+- **Mic Volume** slider (0–200%) in the settings panel; value persists across sessions
+- **Input Level** VU meter shows live mic activity so you can confirm the mic is working
+- Audio routed through a Web Audio pipeline (GainNode → AnalyserNode → peer connection), enabling real-time volume control without re-negotiating the peer connection
+
+---
+
 ## v0.14.4 — 2026-03-29
 
 ### Feat: structured logging for Electron desktop client

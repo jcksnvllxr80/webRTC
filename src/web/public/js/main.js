@@ -1,4 +1,4 @@
-import { initCamera, shareScreen, initAudio, leaveAudio, stopVideo, reapplyAudioSettings, populateDeviceSelects, refreshDeviceLabels } from './media.js';
+import { initCamera, shareScreen, initAudio, leaveAudio, stopVideo, reapplyAudioSettings, setMicVolume, getMicAnalyser, populateDeviceSelects, refreshDeviceLabels } from './media.js';
 import { setupSignalingListeners } from './webrtc.js';
 import { setupChatListeners } from './chat.js';
 import { setupUIListeners } from './ui.js';
@@ -126,11 +126,42 @@ if (isInRoom()) {
     const toggleNS  = document.getElementById('toggle-ns');
     const toggleEC  = document.getElementById('toggle-ec');
     const toggleAGC = document.getElementById('toggle-agc');
+    const micVolumeSlider = document.getElementById('mic-volume');
+    const micVolumeVal    = document.getElementById('mic-volume-val');
+    const micVuBar        = document.getElementById('mic-vu-bar');
 
     // Init checkboxes from saved state
     toggleNS.checked  = state.audioSettings.noiseSuppression;
     toggleEC.checked  = state.audioSettings.echoCancellation;
     toggleAGC.checked = state.audioSettings.autoGainControl;
+
+    // Init volume slider from saved state
+    const savedVol = state.audioSettings.micVolume ?? 1.0;
+    micVolumeSlider.value = savedVol;
+    micVolumeVal.textContent = Math.round(savedVol * 100) + '%';
+
+    micVolumeSlider.addEventListener('input', () => {
+        const v = Number(micVolumeSlider.value);
+        micVolumeVal.textContent = Math.round(v * 100) + '%';
+        setMicVolume(v);
+        state.audioSettings.micVolume = v;
+        saveAudioSettings();
+    });
+
+    // VU meter animation loop
+    const vuData = new Uint8Array(128);
+    function animateVu() {
+        const analyser = getMicAnalyser();
+        if (analyser && micVuBar) {
+            analyser.getByteFrequencyData(vuData);
+            const avg = vuData.reduce((a, b) => a + b, 0) / vuData.length;
+            micVuBar.style.width = Math.min(100, (avg / 255) * 300) + '%';
+        } else if (micVuBar) {
+            micVuBar.style.width = '0%';
+        }
+        requestAnimationFrame(animateVu);
+    }
+    animateVu();
 
     function openSettingsPanel() {
         // Restore last position, or position near the gear button
