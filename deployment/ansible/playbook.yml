@@ -63,7 +63,12 @@
         chdir: /opt/freertc
         creates: /opt/freertc/certs/certificate.pem
 
+    - name: Pull latest images
+      shell: docker compose pull
+      args:
+        chdir: /opt/freertc
+
     - name: Start FreeRTC
-      shell: docker compose up -d
+      shell: docker compose up -d --force-recreate
       args:
         chdir: /opt/freertc
