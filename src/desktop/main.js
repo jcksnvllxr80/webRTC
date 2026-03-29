@@ -264,7 +264,11 @@ function attemptConnect(url) {
 }
 
 ipcMain.handle('connect-to-server', async (_event, url) => {
-    return attemptConnect(url);
+    await attemptConnect(url);
+    try {
+        clientConfig.serverUrl = url;
+        fs.writeFileSync(clientConfigPath, JSON.stringify(clientConfig, null, 2));
+    } catch { /* ignore write errors */ }
 });
 
 ipcMain.handle('get-default-server-url', () => {
