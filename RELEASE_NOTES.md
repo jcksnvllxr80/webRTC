@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.14.3 — 2026-03-28
+
+### Fix: Electron server URL not persisting across restarts
+
+- `config/client.json` inside the app bundle is read-only when installed — writes were silently failing
+- Server URL is now saved to the OS user data directory (`%APPDATA%\FreeRTC\` on Windows) which is always writable
+- Dev mode still seeds the initial URL from `config/client.json` in the project root
+
+---
+
 ## v0.14.2 — 2026-03-28
 
 ### Fix: browser screen share failing with exact constraints error
