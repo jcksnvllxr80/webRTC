@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.14.1 — 2026-03-28
+
+### Feat: persist server URL after successful Electron connection
+
+- After manually connecting to a server, the URL is written back to `config/client.json`
+- App auto-connects on next launch without showing the connection dialog
+
+---
+
 ## v0.13.3 — 2026-03-28
 
 ### Fix: disable invite button when friend is already in the room
