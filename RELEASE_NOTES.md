@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.14.2 — 2026-03-28
+
+### Fix: browser screen share failing with exact constraints error
+
+- `getDisplayMedia` does not support `exact` constraints — the camera `deviceId` was being passed through and causing a TypeError
+- Screen share in the browser now uses resolution-only constraints, stripping the device ID
+
+---
+
 ## v0.14.1 — 2026-03-28
 
 ### Feat: persist server URL after successful Electron connection

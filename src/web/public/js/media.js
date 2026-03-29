@@ -187,8 +187,12 @@ export async function shareScreen() {
                 });
             }
         } else {
+            const val = document.getElementById('resolution-select').value;
+            const videoConstraints = val === 'native'
+                ? true
+                : { width: { ideal: Number(val.split('x')[0]) }, height: { ideal: Number(val.split('x')[1]) } };
             newStream = await navigator.mediaDevices.getDisplayMedia({
-                video: getVideoConstraints(),
+                video: videoConstraints,
                 audio: true
             });
         }
