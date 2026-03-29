@@ -1,3 +1,4 @@
 {
-  "serverUrl": ""
+  "serverUrl": "https://<server_host>:<server_port>",
+  "logLevel": "info"
 }
