@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.15.1 — 2026-03-29
+
+### Fix: voice channel audio drops when stopping video
+
+- Stopping a screen share or camera was killing the remote listener's audio playback — the `participant-updated` handler was nulling out `srcObject` on the remote video element, wiping both video and audio
+- Now only video tracks are removed from the remote stream so the voice channel continues uninterrupted
+
+---
+
 ## v0.15.0 — 2026-03-28
 
 ### Feat: mic volume slider and VU meter in audio settings

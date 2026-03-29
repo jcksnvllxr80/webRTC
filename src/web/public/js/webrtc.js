@@ -268,10 +268,13 @@ export function setupSignalingListeners() {
         state.participants.set(socketId, data);
         renderParticipants();
 
-        // When a remote peer stops all video/screen, clear the video element
-        // immediately rather than waiting for WebRTC track events (which are unreliable).
+        // When a remote peer stops all video/screen, remove stale video tracks so
+        // the element doesn't show a frozen last frame — but keep srcObject intact
+        // so the audio channel continues to play uninterrupted.
         if (socketId !== socket.id && hadVideo && !hasVideo) {
-            document.getElementById('user-2').srcObject = null;
+            if (state.remoteStream) {
+                state.remoteStream.getVideoTracks().forEach(t => state.remoteStream.removeTrack(t));
+            }
         }
     });
 
