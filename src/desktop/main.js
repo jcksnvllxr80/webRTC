@@ -16,11 +16,21 @@ const appIcon = fs.existsSync(iconPath)
     })();
 
 // Load client config (serverUrl)
-const clientConfigPath = path.join(__dirname, '../../config/client.json');
-const clientConfig = (() => {
-    try { return JSON.parse(fs.readFileSync(clientConfigPath, 'utf8')); }
-    catch { return {}; }
-})();
+// Prefer userData dir (writable in packaged app); fall back to source tree for dev
+function getClientConfigPath() {
+    try { return path.join(app.getPath('userData'), 'client.json'); }
+    catch { return path.join(__dirname, '../../config/client.json'); }
+}
+function loadClientConfig() {
+    const p = getClientConfigPath();
+    try { return JSON.parse(fs.readFileSync(p, 'utf8')); }
+    catch {
+        // Fall back to source-tree config.json (dev mode seed value)
+        try { return JSON.parse(fs.readFileSync(path.join(__dirname, '../../config/client.json'), 'utf8')); }
+        catch { return {}; }
+    }
+}
+let clientConfig = {};
 
 let mainWindow = null;
 let connectionWindow = null;
@@ -267,7 +277,7 @@ ipcMain.handle('connect-to-server', async (_event, url) => {
     await attemptConnect(url);
     try {
         clientConfig.serverUrl = url;
-        fs.writeFileSync(clientConfigPath, JSON.stringify(clientConfig, null, 2));
+        fs.writeFileSync(getClientConfigPath(), JSON.stringify(clientConfig, null, 2));
     } catch { /* ignore write errors */ }
 });
 
@@ -289,6 +299,8 @@ ipcMain.handle('pick-display-source', async () => {
 });
 
 app.whenReady().then(async () => {
+    clientConfig = loadClientConfig();
+
     if (process.platform === 'darwin' && app.dock) {
         app.dock.setIcon(appIcon);
     }
