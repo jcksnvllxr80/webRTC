@@ -1,5 +1,17 @@
 # Release Notes
 
+## v0.14.4 — 2026-03-29
+
+### Feat: structured logging for Electron desktop client
+
+- Log file written to `%APPDATA%\FreeRTC\freertc.log` (writable in packaged app)
+- Four levels: `debug`, `info`, `warn`, `error` — configurable via `logLevel` in `client.json`
+- Logs connection attempts, auto-connect results, config saves, window lifecycle, display picker, permission checks, renderer crashes, and uncaught exceptions
+- Log file accessible from **Help → Open Log File**
+- Log level changeable at runtime from **Help → Log Level** — selection is saved to `client.json` and persists across restarts
+
+---
+
 ## v0.14.3 — 2026-03-28
 
 ### Fix: Electron server URL not persisting across restarts
