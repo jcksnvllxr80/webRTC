@@ -61,8 +61,19 @@ async function loadOnlineUsers() {
 
 function updateInviteButtons(username, isOnline) {
     document.querySelectorAll(`.invite-friend-btn[data-username="${CSS.escape(username)}"]`).forEach(btn => {
-        btn.disabled = !isOnline;
-        btn.title = isOnline ? '' : 'User is offline';
+        const isInRoom = [...state.participants.values()].some(p => p.username === username);
+        btn.disabled = isInRoom || !isOnline;
+        btn.title = isInRoom ? 'Already in the room with you' : isOnline ? '' : 'User is offline';
+    });
+}
+
+export function refreshInviteButtonStates() {
+    document.querySelectorAll('.invite-friend-btn[data-username]').forEach(btn => {
+        const username = btn.dataset.username;
+        const isInRoom = [...state.participants.values()].some(p => p.username === username);
+        const isOnline = onlineSet.has(username);
+        btn.disabled = isInRoom || !isOnline;
+        btn.title = isInRoom ? 'Already in the room with you' : isOnline ? '' : 'User is offline';
     });
 }
 
@@ -182,7 +193,7 @@ async function loadFriendsList() {
                         inviteBtn.textContent = 'Sent!';
                         setTimeout(() => {
                             inviteBtn.textContent = 'Invite';
-                            inviteBtn.disabled = false;
+                            refreshInviteButtonStates();
                         }, 2000);
                     });
                     btnGroup.appendChild(inviteBtn);

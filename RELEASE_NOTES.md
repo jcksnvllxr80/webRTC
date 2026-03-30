@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.17.2 — 2026-03-30
+
+### Fix: invite button respects live room membership
+
+- **Invite button disabled for in-room participants** — The Invite button in the friends panel is now disabled immediately when the invited user joins the room, and stays disabled until they leave. Previously it could be re-enabled after the 2-second "Sent!" cooldown even if the user was already in the room.
+- **Participant list column alignment** — Fixed grid columns (`auto auto 1fr`) so the S/M/L and Add Friend controls sit next to the participant name instead of being pushed to the far right.
+
+---
+
 ## v0.17.1 — 2026-03-30
 
 ### UX: participant list layout and expandable text file previews

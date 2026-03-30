@@ -1,5 +1,6 @@
 import { state, servers, socket } from './state.js';
 import { renderParticipants } from './room.js';
+import { refreshInviteButtonStates } from './friends.js';
 
 // ── per-connection state ──────────────────────────────────────────────────────
 let voiceMakingOffer = false;
@@ -312,6 +313,7 @@ export function setupSignalingListeners() {
             state.participants.set(sid, data);
         }
         renderParticipants();
+        refreshInviteButtonStates();
 
         const hasRemotePeer = [...state.participants.keys()].some(sid => sid !== socket.id);
         if (hadRemotePeer && !hasRemotePeer) {
