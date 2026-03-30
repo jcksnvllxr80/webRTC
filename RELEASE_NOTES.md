@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.16.0 — 2026-03-30
+
+### Feat: per-participant video controls and chat improvements
+
+- **Per-participant Add Friend controls** — Non-self participants now show an [Add Friend] button directly in the "In this room" list, with friend-state checks so existing friends are marked and mid-call adds work from either side.
+- **Video size presets (S/M/L)** — Local and remote video sizes can be adjusted independently from the participant list, and the selected sizes persist in localStorage.
+- **File paste support** — Pasted clipboard files now follow the same attachment flow as drag-and-drop: non-image files queue in the attachment strip, while pasted images still insert inline into the editor.
+- **Screen-share loopback guard** — When sharing screen/system audio, the app now mutes remote playback locally to prevent re-capturing the other participant's voice back into the shared system-audio stream.
+
+---
+
 ## v0.15.2 — 2026-03-30
 
 ### Arch: separate voice and video into independent peer connections

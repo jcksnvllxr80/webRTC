@@ -1,4 +1,6 @@
-import { state } from './state.js';
+import { state, socket } from './state.js';
+import { addFriendForParticipant } from './friends.js';
+import { createSizeGroup } from './video-size.js';
 
 export function isInRoom() {
     return !!state.roomId;
@@ -9,7 +11,7 @@ export function renderParticipants() {
     if (!ul) return;
 
     ul.innerHTML = '';
-    for (const [, data] of state.participants) {
+    for (const [socketId, data] of state.participants) {
         const li = document.createElement('li');
 
         // Pick dot class based on highest active media
@@ -22,10 +24,40 @@ export function renderParticipants() {
         dot.className = `media-state-dot ${dotClass}`;
 
         const name = document.createElement('span');
+        name.className = 'participant-name';
         name.textContent = data.username;
+
+        const controls = document.createElement('div');
+        controls.className = 'participant-controls';
 
         li.appendChild(dot);
         li.appendChild(name);
+
+        // Add video size controls
+        const isLocal = socketId === socket.id;
+        controls.appendChild(createSizeGroup(isLocal));
+
+        // Add "Add Friend" button for non-self participants
+        if (socketId !== socket.id) {
+            const btn = document.createElement('button');
+            btn.className = 'participant-add-friend-btn';
+            btn.textContent = 'Add Friend';
+            btn.addEventListener('click', () => addFriendForParticipant(data.username, btn));
+            controls.appendChild(btn);
+
+            // Async check if already friends
+            fetch(`/api/friends/check/${encodeURIComponent(data.username)}`)
+                .then(r => r.json())
+                .then(({ isFriend }) => {
+                    if (isFriend) {
+                        btn.textContent = 'Already Friends';
+                        btn.disabled = true;
+                    }
+                })
+                .catch(() => {});
+        }
+
+        li.appendChild(controls);
         ul.appendChild(li);
     }
 }

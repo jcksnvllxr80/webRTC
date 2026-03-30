@@ -1,4 +1,4 @@
-const { app, BrowserWindow, desktopCapturer, ipcMain, Menu, nativeImage, session, shell } = require('electron');
+const { app, BrowserWindow, clipboard, desktopCapturer, ipcMain, Menu, nativeImage, session, shell } = require('electron');
 app.name = 'FreeRTC';
 const path = require('path');
 const fs = require('fs');
@@ -71,6 +71,124 @@ let clientConfig = {};
 let mainWindow = null;
 let connectionWindow = null;
 let displayPickerWindow = null;
+
+const MAX_CLIPBOARD_FILE_BYTES = 20 * 1024 * 1024;
+
+function inferMimeType(filePath) {
+    const ext = path.extname(filePath).toLowerCase();
+    const types = {
+        '.txt': 'text/plain',
+        '.md': 'text/markdown',
+        '.json': 'application/json',
+        '.csv': 'text/csv',
+        '.pdf': 'application/pdf',
+        '.zip': 'application/zip',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.svg': 'image/svg+xml',
+        '.mp3': 'audio/mpeg',
+        '.wav': 'audio/wav',
+        '.mp4': 'video/mp4',
+        '.mov': 'video/quicktime'
+    };
+    return types[ext] || 'application/octet-stream';
+}
+
+function decodeUtf16NullList(buffer) {
+    return buffer
+        .toString('utf16le')
+        .split('\u0000')
+        .map(value => value.trim())
+        .filter(Boolean);
+}
+
+function parseFileUrlList(text) {
+    return String(text || '')
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith('#'))
+        .map(line => {
+            try {
+                const url = new URL(line);
+                if (url.protocol !== 'file:') return null;
+                let pathname = decodeURIComponent(url.pathname || '');
+                if (process.platform === 'win32' && pathname.startsWith('/')) pathname = pathname.slice(1);
+                return pathname;
+            } catch {
+                return null;
+            }
+        })
+        .filter(Boolean);
+}
+
+function getClipboardFilePaths() {
+    const formats = new Set(clipboard.availableFormats());
+    const filePaths = new Set();
+
+    logger.debug(`Clipboard formats: ${[...formats].join(', ') || '(none)'}`);
+
+    if (formats.has('FileNameW')) {
+        for (const filePath of decodeUtf16NullList(clipboard.readBuffer('FileNameW'))) {
+            filePaths.add(filePath);
+        }
+    }
+
+    if (formats.has('text/uri-list')) {
+        for (const filePath of parseFileUrlList(clipboard.readBuffer('text/uri-list').toString('utf8'))) {
+            filePaths.add(filePath);
+        }
+    }
+
+    const text = clipboard.readText();
+    if (/^[a-zA-Z]:\\/.test(text.trim()) || text.includes('file:///')) {
+        for (const filePath of parseFileUrlList(text)) filePaths.add(filePath);
+        for (const line of text.split(/\r?\n/).map(v => v.trim()).filter(Boolean)) {
+            if (/^[a-zA-Z]:\\/.test(line)) filePaths.add(line);
+        }
+    }
+
+    const resolved = [...filePaths].filter(filePath => {
+        try {
+            return fs.existsSync(filePath) && fs.statSync(filePath).isFile();
+        } catch {
+            return false;
+        }
+    });
+
+    logger.debug(`Clipboard file paths: ${resolved.join(', ') || '(none)'}`);
+    return resolved;
+}
+
+function readClipboardFiles() {
+    const payloads = [];
+
+    for (const filePath of getClipboardFilePaths()) {
+        let stat;
+        try {
+            stat = fs.statSync(filePath);
+        } catch {
+            continue;
+        }
+
+        if (!stat.isFile() || stat.size > MAX_CLIPBOARD_FILE_BYTES) continue;
+
+        try {
+            payloads.push({
+                name: path.basename(filePath),
+                type: inferMimeType(filePath),
+                size: stat.size,
+                dataBase64: fs.readFileSync(filePath).toString('base64')
+            });
+        } catch (err) {
+            logger.warn(`Could not read clipboard file "${filePath}": ${err.message}`);
+        }
+    }
+
+    return payloads;
+}
 
 function createMenu() {
     const template = [];
@@ -423,6 +541,13 @@ ipcMain.handle('pick-display-source', async () => {
         logger.error(`Display source picker failed: ${err.message}`);
         return null;
     }
+});
+
+ipcMain.handle('read-clipboard-files', () => {
+    logger.debug('Clipboard file read requested');
+    const files = readClipboardFiles();
+    logger.debug(`Clipboard file payload count: ${files.length}`);
+    return files;
 });
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────

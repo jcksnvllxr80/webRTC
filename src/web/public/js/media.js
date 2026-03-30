@@ -1,6 +1,7 @@
 import { state, socket } from './state.js';
 import { ensureVoiceConnection, closeVoiceConnection, ensureVideoConnection, closeVideoConnection, addVideoTrack, addTrackGetSender, removeVideoTracks, removeScreenAudioTrack } from './webrtc.js';
 import { updateControlsForMediaState } from './room.js';
+import { setRemoteAudioSystemMuted } from './remote-audio.js';
 
 function formatMediaError(prefix, error) {
     const name = error?.name || 'Error';
@@ -145,6 +146,9 @@ export function leaveAudio() {
 // Start camera — video only, on dedicated video peer connection
 export async function initCamera() {
     try {
+        state.isSharingSystemAudio = false;
+        setRemoteAudioSystemMuted(false);
+
         if (state.localStream) {
             state.localStream.getTracks().forEach(t => t.stop());
             removeVideoTracks();
@@ -179,6 +183,9 @@ export async function initCamera() {
 // Share screen — on dedicated video peer connection
 export async function shareScreen() {
     try {
+        state.isSharingSystemAudio = false;
+        setRemoteAudioSystemMuted(false);
+
         if (state.localStream) {
             state.localStream.getTracks().forEach(t => t.stop());
             removeVideoTracks();
@@ -201,7 +208,8 @@ export async function shareScreen() {
                         mandatory: {
                             chromeMediaSource: 'desktop',
                             chromeMediaSourceId: source.id
-                        }
+                        },
+                        optional: [{ echoCancellation: true }]
                     },
                     video: getElectronDesktopConstraints(source.id)
                 });
@@ -218,7 +226,7 @@ export async function shareScreen() {
                 : { width: { ideal: Number(val.split('x')[0]) }, height: { ideal: Number(val.split('x')[1]) } };
             newStream = await navigator.mediaDevices.getDisplayMedia({
                 video: videoConstraints,
-                audio: { suppressLocalAudioPlayback: true }
+                audio: { suppressLocalAudioPlayback: true, echoCancellation: true }
             });
         }
 
@@ -238,6 +246,8 @@ export async function shareScreen() {
         const screenAudioTrack = state.localStream.getAudioTracks()[0];
         if (screenAudioTrack) {
             state.screenAudioSender = addTrackGetSender(screenAudioTrack, state.localStream);
+            state.isSharingSystemAudio = true;
+            setRemoteAudioSystemMuted(true);
         }
 
         state.media.screen = true;
@@ -257,6 +267,8 @@ export function stopVideo() {
     }
 
     closeVideoConnection();
+    state.isSharingSystemAudio = false;
+    setRemoteAudioSystemMuted(false);
 
     state.media.video = false;
     state.media.screen = false;

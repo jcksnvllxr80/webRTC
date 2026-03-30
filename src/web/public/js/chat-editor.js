@@ -34000,28 +34000,23 @@ function createChatEditor({ editableEl, onSubmit }) {
   function interceptPaste(event) {
     const items = event.clipboardData?.items;
     if (items) {
+      const itemFiles = [];
       for (const item of items) {
-        if (item.type.startsWith("image/")) {
+        if (item.kind === "file") {
           const file = item.getAsFile();
-          if (file) {
-            event.preventDefault();
-            insertImageFile(file);
-            return true;
-          }
+          if (file) itemFiles.push(file);
         }
       }
+      if (handlePastedFiles(itemFiles, event)) return true;
     }
-    const files = event.clipboardData?.files;
-    if (files?.length) {
-      for (const file of files) {
-        if (file.type.startsWith("image/")) {
-          event.preventDefault();
-          insertImageFile(file);
-          return true;
-        }
-      }
-    }
+    if (handlePastedFiles(event.clipboardData?.files, event)) return true;
     const hasTextInItems = Array.from(items || []).some((i) => i.type === "text/plain" || i.type === "text/html");
+    if (!hasTextInItems && window.electronAPI?.readClipboardFiles) {
+      event.preventDefault();
+      window.electronAPI.readClipboardFiles().then((payloads) => handlePastedFiles(payloads.map(clipboardPayloadToFile), event)).catch(() => {
+      });
+      return true;
+    }
     if (!hasTextInItems && navigator.clipboard?.read) {
       navigator.clipboard.read().then((clipItems) => {
         for (const ci of clipItems) {
@@ -34043,19 +34038,13 @@ function createChatEditor({ editableEl, onSubmit }) {
     const active = document.activeElement;
     if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) return;
     if (editableEl.contains(active) || editableEl.contains(document.activeElement)) return;
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    for (const item of items) {
-      if (item.type.startsWith("image/")) {
-        const file = item.getAsFile();
-        if (file) {
-          e.preventDefault();
-          editor.commands.focus();
-          insertImageFile(file);
-          return;
-        }
-      }
-    }
+    const files = [
+      ...Array.from(e.clipboardData?.items || []).filter((item) => item.kind === "file").map((item) => item.getAsFile()).filter(Boolean),
+      ...Array.from(e.clipboardData?.files || [])
+    ];
+    if (!files.length) return;
+    editor.commands.focus();
+    handlePastedFiles(files, e);
   });
   function interceptDrop(event) {
     const files = event.dataTransfer?.files;
@@ -34066,6 +34055,24 @@ function createChatEditor({ editableEl, onSubmit }) {
       else addPendingFile(file);
     }
     return true;
+  }
+  function handlePastedFiles(files, event) {
+    const pastedFiles = Array.from(files || []);
+    if (!pastedFiles.length) return false;
+    let handled = false;
+    for (const file of pastedFiles) {
+      if (file.type.startsWith("image/")) insertImageFile(file);
+      else addPendingFile(file);
+      handled = true;
+    }
+    if (handled) event.preventDefault();
+    return handled;
+  }
+  function clipboardPayloadToFile(payload) {
+    const binary = atob(payload.dataBase64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new File([bytes], payload.name, { type: payload.type || "application/octet-stream" });
   }
   function insertImageFile(file) {
     if (file.size > 20 * 1024 * 1024) {
