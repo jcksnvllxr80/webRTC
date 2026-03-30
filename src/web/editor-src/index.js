@@ -205,6 +205,13 @@ export function createChatEditor({ editableEl, onSubmit }) {
     // Only attempt this when items was empty/unavailable — if items has text content
     // we must let the default paste proceed instead of blocking it.
     const hasTextInItems = Array.from(items || []).some(i => i.type === 'text/plain' || i.type === 'text/html');
+    if (!hasTextInItems && window.electronAPI?.readClipboardFiles) {
+      event.preventDefault();
+      window.electronAPI.readClipboardFiles()
+        .then(payloads => handlePastedFiles(payloads.map(clipboardPayloadToFile), event))
+        .catch(() => {});
+      return true;
+    }
     if (!hasTextInItems && navigator.clipboard?.read) {
       navigator.clipboard.read().then(clipItems => {
         for (const ci of clipItems) {
@@ -266,6 +273,13 @@ export function createChatEditor({ editableEl, onSubmit }) {
 
     if (handled) event.preventDefault();
     return handled;
+  }
+
+  function clipboardPayloadToFile(payload) {
+    const binary = atob(payload.dataBase64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new File([bytes], payload.name, { type: payload.type || 'application/octet-stream' });
   }
 
   // ── Image insert ──
