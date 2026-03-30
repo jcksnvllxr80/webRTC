@@ -34013,13 +34013,12 @@ function createChatEditor({ editableEl, onSubmit }) {
     }
     const files = event.clipboardData?.files;
     if (files?.length) {
+      event.preventDefault();
       for (const file of files) {
-        if (file.type.startsWith("image/")) {
-          event.preventDefault();
-          insertImageFile(file);
-          return true;
-        }
+        if (file.type.startsWith("image/")) insertImageFile(file);
+        else addPendingFile(file);
       }
+      return true;
     }
     const hasTextInItems = Array.from(items || []).some((i) => i.type === "text/plain" || i.type === "text/html");
     if (!hasTextInItems && navigator.clipboard?.read) {
@@ -34053,6 +34052,15 @@ function createChatEditor({ editableEl, onSubmit }) {
           editor.commands.focus();
           insertImageFile(file);
           return;
+        }
+      }
+    }
+    const pasteFiles = e.clipboardData?.files;
+    if (pasteFiles?.length) {
+      for (const file of pasteFiles) {
+        if (!file.type.startsWith("image/")) {
+          e.preventDefault();
+          addPendingFile(file);
         }
       }
     }
