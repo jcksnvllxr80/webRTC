@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.17.1 — 2026-03-30
+
+### UX: participant list layout and expandable text file previews
+
+- **Participant list grid layout** — Controls now use separate columns to avoid crowding; dot, name, and controls each get their own space (dot: auto, name: 1fr, controls: auto).
+- **Matched Add Friend button size** — Add Friend button and input-level VU meter now both have fixed dimensions (100px × 22px) for visual alignment in the participant list.
+- **Expandable text file previews** — Text files (`.txt`, `.json`, `.js`, `.py`, `.md`, etc.) now show a collapsible preview with expand (▼) / collapse (▲) toggles; images and videos still display inline always.
+
+---
+
 ## v0.17.0 — 2026-03-30
 
 ### Feat: UX polish — auto-join audio, file previews, participant VU, button fixes

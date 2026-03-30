@@ -357,6 +357,27 @@ function addMessageToChat(username, html, text, msgId) {
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
+function isTextFile(mimeType, filename) {
+    if (!mimeType) {
+        // Try to detect from filename if no MIME type
+        const ext = filename?.split('.').pop()?.toLowerCase();
+        return ['txt', 'json', 'js', 'ts', 'css', 'html', 'xml', 'csv', 'log', 'md', 'py', 'java', 'go', 'rs', 'rb', 'php', 'sh'].includes(ext);
+    }
+    if (mimeType.startsWith('text/')) return true;
+    if (mimeType.includes('json')) return true;
+    if (mimeType.includes('xml')) return true;
+    if (mimeType.includes('javascript')) return true;
+    if (mimeType.includes('typescript')) return true;
+    if (mimeType.includes('css')) return true;
+    if (mimeType.includes('html')) return true;
+    if (mimeType === 'application/octet-stream') {
+        // Try to detect from filename if no MIME type
+        const ext = filename?.split('.').pop()?.toLowerCase();
+        return ['txt', 'json', 'js', 'ts', 'css', 'html', 'xml', 'csv', 'log', 'md', 'py', 'java', 'go', 'rs', 'rb', 'php', 'sh'].includes(ext);
+    }
+    return false;
+}
+
 function addFileToChat(username, { filename, mimeType, data, size, msgId }) {
     const messagesDiv = document.getElementById('messages');
     messagesDiv.querySelector('.chat-empty')?.remove();
@@ -413,23 +434,67 @@ function addFileToChat(username, { filename, mimeType, data, size, msgId }) {
 
     msg.appendChild(header);
 
-    // Inline preview for images and videos
+    // Container for preview (hidden by default for text files)
+    const previewContainer = document.createElement('div');
+    previewContainer.className = 'chat-file-preview-container';
+    let hasPreview = false;
+
+    // Inline preview for images and videos (always shown)
     if (mimeType?.startsWith('image/')) {
         const preview = document.createElement('img');
         preview.src = data;
         preview.className = 'chat-file-preview-img chat-inline-img';
         preview.alt = filename;
-        msg.appendChild(preview);
+        previewContainer.appendChild(preview);
+        hasPreview = true;
+        previewContainer.style.display = 'block';
+        msg.appendChild(previewContainer);
     } else if (mimeType?.startsWith('video/')) {
         const preview = document.createElement('video');
         preview.src = data;
         preview.className = 'chat-file-preview-video';
         preview.controls = true;
         preview.preload = 'metadata';
-        msg.appendChild(preview);
+        previewContainer.appendChild(preview);
+        hasPreview = true;
+        previewContainer.style.display = 'block';
+        msg.appendChild(previewContainer);
+    } else if (isTextFile(mimeType, filename)) {
+        // Text file preview (hidden until expand clicked)
+        try {
+            const base64Data = data.split(',')[1];
+            const decoded = atob(base64Data);
+            const preview = document.createElement('pre');
+            preview.className = 'chat-file-preview-text';
+            preview.textContent = decoded.length > 5000 ? decoded.slice(0, 5000) + '\n\n[... truncated]' : decoded;
+            previewContainer.appendChild(preview);
+            previewContainer.style.display = 'none';
+            hasPreview = true;
+            msg.appendChild(previewContainer);
+        } catch {
+            // If decode fails, just show file card
+        }
     }
 
     msg.appendChild(card);
+
+    // Add expand button if there's a preview that's not always visible
+    if (hasPreview && isTextFile(mimeType, filename)) {
+        const expandBtn = document.createElement('button');
+        expandBtn.type = 'button';
+        expandBtn.className = 'file-card-expand-btn';
+        expandBtn.title = 'Preview file';
+        expandBtn.innerHTML = '▼';
+        expandBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const isHidden = previewContainer.style.display === 'none';
+            previewContainer.style.display = isHidden ? 'block' : 'none';
+            expandBtn.innerHTML = isHidden ? '▲' : '▼';
+            expandBtn.title = isHidden ? 'Hide preview' : 'Preview file';
+        });
+        dl.parentNode.insertBefore(expandBtn, dl);
+    }
+
     msg.appendChild(bar);
     messagesDiv.appendChild(msg);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
