@@ -32,6 +32,7 @@ export function renderParticipants() {
 
         li.appendChild(dot);
         li.appendChild(name);
+        li.appendChild(controls);
 
         // Add video size controls
         const isLocal = socketId === socket.id;
@@ -65,7 +66,6 @@ export function renderParticipants() {
                 .catch(() => {});
         }
 
-        li.appendChild(controls);
         ul.appendChild(li);
     }
 }
