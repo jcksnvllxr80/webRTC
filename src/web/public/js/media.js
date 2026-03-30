@@ -201,7 +201,8 @@ export async function shareScreen() {
                         mandatory: {
                             chromeMediaSource: 'desktop',
                             chromeMediaSourceId: source.id
-                        }
+                        },
+                        optional: [{ echoCancellation: true }]
                     },
                     video: getElectronDesktopConstraints(source.id)
                 });
@@ -218,7 +219,7 @@ export async function shareScreen() {
                 : { width: { ideal: Number(val.split('x')[0]) }, height: { ideal: Number(val.split('x')[1]) } };
             newStream = await navigator.mediaDevices.getDisplayMedia({
                 video: videoConstraints,
-                audio: { suppressLocalAudioPlayback: true }
+                audio: { suppressLocalAudioPlayback: true, echoCancellation: true }
             });
         }
 
