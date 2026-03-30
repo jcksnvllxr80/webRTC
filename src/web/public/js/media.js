@@ -1,5 +1,5 @@
 import { state, socket } from './state.js';
-import { ensurePeerConnection, addVideoTrack, addTrackGetSender, removeVideoTracks, removeScreenAudioTrack, closePeerConnection } from './webrtc.js';
+import { ensureVoiceConnection, closeVoiceConnection, ensureVideoConnection, closeVideoConnection, addVideoTrack, addTrackGetSender, removeVideoTracks, removeScreenAudioTrack } from './webrtc.js';
 import { updateControlsForMediaState } from './room.js';
 
 function formatMediaError(prefix, error) {
@@ -103,62 +103,48 @@ function getAudioConstraints() {
     return c;
 }
 
-// Join audio — mic only
+// Join audio — mic only, on dedicated voice peer connection
 export async function initAudio() {
+    let rawStream;
     try {
-        state.audioStream = await navigator.mediaDevices.getUserMedia({
+        rawStream = await navigator.mediaDevices.getUserMedia({
             audio: getAudioConstraints(),
             video: false
         });
-
-        ensurePeerConnection();
-        const processedStream = setupAudioPipeline(state.audioStream);
-        processedStream.getTracks().forEach(track => {
-            state.peerConnection.addTrack(track, processedStream);
-        });
-
-        state.media.audio = true;
-        broadcastMediaState();
     } catch (error) {
         console.error('Error accessing microphone:', error);
         alert(formatMediaError('Could not access microphone', error));
+        return;
     }
+
+    state.audioStream = rawStream;
+    ensureVoiceConnection();
+    const processedStream = setupAudioPipeline(state.audioStream);
+    processedStream.getTracks().forEach(track => {
+        state.voicePC.addTrack(track, processedStream);
+    });
+
+    state.media.audio = true;
+    broadcastMediaState();
 }
 
-// Leave audio — stop mic, remove audio tracks from peer connection
+// Leave audio — close the dedicated voice peer connection entirely
 export function leaveAudio() {
     if (state.audioStream) {
         state.audioStream.getTracks().forEach(track => track.stop());
-        // Remove audio senders from peer connection
-        if (state.peerConnection) {
-            const senders = state.peerConnection.getSenders();
-            for (const sender of senders) {
-                if (sender.track && sender.track.kind === 'audio') {
-                    state.peerConnection.removeTrack(sender);
-                }
-            }
-        }
         state.audioStream = null;
     }
     teardownAudioPipeline();
+    closeVoiceConnection();
 
     state.media.audio = false;
     broadcastMediaState();
-
-    // If nothing else is active, tear down the peer connection only if no remote peer is present
-    if (!hasAnyMedia()) {
-        const hasRemotePeer = [...state.participants.keys()].some(sid => sid !== socket.id);
-        if (!hasRemotePeer) closePeerConnection();
-        socket.emit('user-stopped-stream', state.roomId, socket.id);
-    }
+    socket.emit('user-stopped-voice', state.roomId);
 }
 
-// Start camera — video only, independent of audio
+// Start camera — video only, on dedicated video peer connection
 export async function initCamera() {
     try {
-        // Stop any existing video/screen and clear state.localStream BEFORE
-        // ensurePeerConnection() so it doesn't pre-add tracks that addVideoTrack()
-        // will try to add again (InvalidAccessError: sender already exists).
         if (state.localStream) {
             state.localStream.getTracks().forEach(t => t.stop());
             removeVideoTracks();
@@ -166,7 +152,7 @@ export async function initCamera() {
         }
         state.localStream = null;
 
-        ensurePeerConnection();
+        ensureVideoConnection();
 
         const newStream = await navigator.mediaDevices.getUserMedia({
             video: getVideoConstraints(),
@@ -190,11 +176,9 @@ export async function initCamera() {
     }
 }
 
-// Share screen — independent of audio
+// Share screen — on dedicated video peer connection
 export async function shareScreen() {
     try {
-        // Same ordering fix as initCamera: clear state.localStream before
-        // ensurePeerConnection() to prevent the double-addTrack error.
         if (state.localStream) {
             state.localStream.getTracks().forEach(t => t.stop());
             removeVideoTracks();
@@ -202,7 +186,7 @@ export async function shareScreen() {
         }
         state.localStream = null;
 
-        ensurePeerConnection();
+        ensureVideoConnection();
 
         let newStream;
         if (isElectronDesktop()) {
@@ -264,38 +248,21 @@ export async function shareScreen() {
     }
 }
 
-// Stop video/screen only — keeps audio if active
+// Stop video/screen — closes video PC entirely; voice PC is never touched
 export function stopVideo() {
     if (state.localStream) {
         state.localStream.getTracks().forEach(track => track.stop());
         document.getElementById('user-1').srcObject = null;
         state.localStream = null;
-        removeVideoTracks();
     }
 
-    removeScreenAudioTrack();
+    closeVideoConnection();
 
     state.media.video = false;
     state.media.screen = false;
 
-    // If mic audio was active, ensure its processed track is still connected to the
-    // peer connection — renegotiation after removing screen tracks can silently drop it.
-    if (state.media.audio && audioDestination && state.peerConnection) {
-        const senders = state.peerConnection.getSenders();
-        for (const track of audioDestination.stream.getAudioTracks()) {
-            if (!senders.some(s => s.track === track)) {
-                state.peerConnection.addTrack(track, audioDestination.stream);
-            }
-        }
-    }
-
     broadcastMediaState();
-
-    if (!hasAnyMedia()) {
-        const hasRemotePeer = [...state.participants.keys()].some(sid => sid !== socket.id);
-        if (!hasRemotePeer) closePeerConnection();
-        socket.emit('user-stopped-stream', state.roomId, socket.id);
-    }
+    socket.emit('user-stopped-video', state.roomId);
 }
 
 // Re-apply audio settings to a live mic stream.

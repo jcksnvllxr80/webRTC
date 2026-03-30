@@ -1,235 +1,302 @@
 import { state, servers, socket } from './state.js';
 import { renderParticipants } from './room.js';
 
-let makingOffer = false;
-let pendingCandidates = [];
+// ── per-connection state ──────────────────────────────────────────────────────
+let voiceMakingOffer = false;
+let voicePending = [];
+
+let videoMakingOffer = false;
+let videoPending = [];
+let videoSender = null; // RTCRtpSender — reused via replaceTrack to avoid renegotiation
 
 function setConnectionStatus(message) {
     const el = document.getElementById('connection-status');
     if (!el) return;
-    if (message) {
-        el.textContent = message;
-        el.hidden = false;
-    } else {
-        el.hidden = true;
-    }
+    if (message) { el.textContent = message; el.hidden = false; }
+    else { el.hidden = true; }
 }
 
-export function ensurePeerConnection() {
-    if (state.peerConnection) return;
+// ── Voice PC ──────────────────────────────────────────────────────────────────
 
-    state.peerConnection = new RTCPeerConnection(servers);
+export function ensureVoiceConnection() {
+    if (state.voicePC) return;
 
-    state.remoteStream = new MediaStream();
-    document.getElementById('user-2').srcObject = state.remoteStream;
+    state.voicePC = new RTCPeerConnection(servers);
+    state.remoteAudioStream = new MediaStream();
+    document.getElementById('user-2-audio').srcObject = state.remoteAudioStream;
 
-    // Add existing audio tracks
-    if (state.audioStream) {
-        state.audioStream.getTracks().forEach((track) => {
-            state.peerConnection.addTrack(track, state.audioStream);
-        });
-    }
-
-    // Add existing video/screen tracks
-    if (state.localStream) {
-        state.localStream.getTracks().forEach((track) => {
-            state.peerConnection.addTrack(track, state.localStream);
-        });
-    }
-
-    state.peerConnection.ontrack = (event) => {
-        event.streams[0].getTracks().forEach((track) => {
-            if (track.kind === 'video') {
-                // Only one video source at a time — remove any stale video tracks.
-                state.remoteStream.getTracks()
-                    .filter(t => t.kind === 'video' && t.id !== track.id)
-                    .forEach(t => state.remoteStream.removeTrack(t));
-            } else {
-                // For audio, keep all live tracks; only purge ended ones to avoid
-                // accumulation (mic + screen audio can coexist).
-                state.remoteStream.getTracks()
-                    .filter(t => t.kind === 'audio' && t.readyState === 'ended' && t.id !== track.id)
-                    .forEach(t => state.remoteStream.removeTrack(t));
-            }
-            if (!state.remoteStream.getTrackById(track.id)) {
-                state.remoteStream.addTrack(track);
-            }
-        });
-        // srcObject may have been nulled by user-stopped-stream; always reassign.
-        document.getElementById('user-2').srcObject = state.remoteStream;
-    };
-
-    state.peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-            socket.emit('ice-candidate', event.candidate, state.roomId);
+    state.voicePC.ontrack = (event) => {
+        const track = event.track;
+        if (!state.remoteAudioStream.getTrackById(track.id)) {
+            state.remoteAudioStream.addTrack(track);
         }
+        document.getElementById('user-2-audio').srcObject = state.remoteAudioStream;
     };
 
-    // Monitor ICE connection health and trigger restart on failure/prolonged disconnect
-    state.peerConnection.oniceconnectionstatechange = () => {
-        const s = state.peerConnection?.iceConnectionState;
-        if (s === 'connected' || s === 'completed') {
-            setConnectionStatus(null);
-        } else if (s === 'failed') {
-            console.warn('ICE failed — restarting');
-            setConnectionStatus('Connection failed — retrying…');
-            state.peerConnection?.restartIce();
+    state.voicePC.onicecandidate = (event) => {
+        if (event.candidate) socket.emit('voice-ice', event.candidate, state.roomId);
+    };
+
+    state.voicePC.oniceconnectionstatechange = () => {
+        const s = state.voicePC?.iceConnectionState;
+        if (s === 'connected' || s === 'completed') setConnectionStatus(null);
+        else if (s === 'failed') {
+            setConnectionStatus('Voice connection failed — retrying…');
+            state.voicePC?.restartIce();
         } else if (s === 'disconnected') {
-            setConnectionStatus('Connection lost — reconnecting…');
             setTimeout(() => {
-                if (state.peerConnection?.iceConnectionState === 'disconnected') {
-                    console.warn('ICE still disconnected after 3s — restarting');
-                    state.peerConnection?.restartIce();
+                if (state.voicePC?.iceConnectionState === 'disconnected') {
+                    state.voicePC?.restartIce();
                 }
             }, 3000);
         }
     };
 
-    state.peerConnection.onnegotiationneeded = async () => {
-        if (makingOffer) return;
+    state.voicePC.onnegotiationneeded = async () => {
+        if (voiceMakingOffer) return;
         try {
-            makingOffer = true;
-            await state.peerConnection.setLocalDescription();
-            socket.emit('offer', state.peerConnection.localDescription, state.roomId);
+            voiceMakingOffer = true;
+            await state.voicePC.setLocalDescription();
+            socket.emit('voice-offer', state.voicePC.localDescription, state.roomId);
         } catch (err) {
-            console.error('Negotiation error:', err);
+            console.error('Voice negotiation error:', err);
         } finally {
-            makingOffer = false;
+            voiceMakingOffer = false;
         }
     };
 }
 
-// ISSUE-002: guard createOffer with makingOffer to prevent race with onnegotiationneeded
-export async function createOffer() {
-    if (makingOffer) return;
-    ensurePeerConnection();
+export function closeVoiceConnection() {
+    state.voicePC?.close();
+    state.voicePC = null;
+    voiceMakingOffer = false;
+    voicePending = [];
+    state.remoteAudioStream = null;
+    document.getElementById('user-2-audio').srcObject = null;
+}
 
+async function createVoiceOffer() {
+    if (voiceMakingOffer) return;
+    ensureVoiceConnection();
     try {
-        makingOffer = true;
-        const offer = await state.peerConnection.createOffer();
-        await state.peerConnection.setLocalDescription(offer);
-        socket.emit('offer', offer, state.roomId);
+        voiceMakingOffer = true;
+        await state.voicePC.setLocalDescription();
+        socket.emit('voice-offer', state.voicePC.localDescription, state.roomId);
     } catch (err) {
-        console.error('createOffer error:', err);
+        console.error('createVoiceOffer error:', err);
     } finally {
-        makingOffer = false;
+        voiceMakingOffer = false;
     }
 }
 
-export async function createAnswer(offer) {
-    ensurePeerConnection();
+async function createVoiceAnswer(offer) {
+    ensureVoiceConnection();
+    await state.voicePC.setRemoteDescription(offer);
+    for (const c of voicePending) {
+        try { await state.voicePC.addIceCandidate(c); } catch (e) { console.warn('voice ICE (buffered):', e); }
+    }
+    voicePending = [];
+    const answer = await state.voicePC.createAnswer();
+    await state.voicePC.setLocalDescription(answer);
+    socket.emit('voice-answer', answer, state.roomId);
+}
 
-    await state.peerConnection.setRemoteDescription(offer);
+// ── Video PC ──────────────────────────────────────────────────────────────────
 
-    // Add any ICE candidates that arrived before the remote description was set
-    for (const candidate of pendingCandidates) {
-        try {
-            await state.peerConnection.addIceCandidate(candidate); // ISSUE-004
-        } catch (err) {
-            console.warn('addIceCandidate (buffered) failed:', err);
+export function ensureVideoConnection() {
+    if (state.videoPC) return;
+
+    state.videoPC = new RTCPeerConnection(servers);
+    state.remoteVideoStream = new MediaStream();
+    document.getElementById('user-2').srcObject = state.remoteVideoStream;
+
+    state.videoPC.ontrack = (event) => {
+        const track = event.track;
+        if (track.kind === 'video') {
+            // Replace any stale video track
+            state.remoteVideoStream.getVideoTracks()
+                .filter(t => t.id !== track.id)
+                .forEach(t => state.remoteVideoStream.removeTrack(t));
+        } else {
+            // Screen audio — purge ended tracks only
+            state.remoteVideoStream.getAudioTracks()
+                .filter(t => t.readyState === 'ended' && t.id !== track.id)
+                .forEach(t => state.remoteVideoStream.removeTrack(t));
         }
-    }
-    pendingCandidates = [];
+        if (!state.remoteVideoStream.getTrackById(track.id)) {
+            state.remoteVideoStream.addTrack(track);
+        }
+        document.getElementById('user-2').srcObject = state.remoteVideoStream;
+    };
 
-    const answer = await state.peerConnection.createAnswer();
-    await state.peerConnection.setLocalDescription(answer);
+    state.videoPC.onicecandidate = (event) => {
+        if (event.candidate) socket.emit('video-ice', event.candidate, state.roomId);
+    };
 
-    socket.emit('answer', answer, state.roomId);
+    state.videoPC.oniceconnectionstatechange = () => {
+        const s = state.videoPC?.iceConnectionState;
+        if (s === 'connected' || s === 'completed') setConnectionStatus(null);
+        else if (s === 'failed') {
+            setConnectionStatus('Video connection failed — retrying…');
+            state.videoPC?.restartIce();
+        } else if (s === 'disconnected') {
+            setTimeout(() => {
+                if (state.videoPC?.iceConnectionState === 'disconnected') {
+                    state.videoPC?.restartIce();
+                }
+            }, 3000);
+        }
+    };
+
+    state.videoPC.onnegotiationneeded = async () => {
+        if (videoMakingOffer) return;
+        try {
+            videoMakingOffer = true;
+            await state.videoPC.setLocalDescription();
+            socket.emit('video-offer', state.videoPC.localDescription, state.roomId);
+        } catch (err) {
+            console.error('Video negotiation error:', err);
+        } finally {
+            videoMakingOffer = false;
+        }
+    };
 }
+
+export function closeVideoConnection() {
+    state.videoPC?.close();
+    state.videoPC = null;
+    videoMakingOffer = false;
+    videoPending = [];
+    videoSender = null;
+    state.screenAudioSender = null;
+    state.remoteVideoStream = null;
+    document.getElementById('user-2').srcObject = null;
+}
+
+async function createVideoOffer() {
+    if (videoMakingOffer) return;
+    ensureVideoConnection();
+    try {
+        videoMakingOffer = true;
+        await state.videoPC.setLocalDescription();
+        socket.emit('video-offer', state.videoPC.localDescription, state.roomId);
+    } catch (err) {
+        console.error('createVideoOffer error:', err);
+    } finally {
+        videoMakingOffer = false;
+    }
+}
+
+async function createVideoAnswer(offer) {
+    ensureVideoConnection();
+    await state.videoPC.setRemoteDescription(offer);
+    for (const c of videoPending) {
+        try { await state.videoPC.addIceCandidate(c); } catch (e) { console.warn('video ICE (buffered):', e); }
+    }
+    videoPending = [];
+    const answer = await state.videoPC.createAnswer();
+    await state.videoPC.setLocalDescription(answer);
+    socket.emit('video-answer', answer, state.roomId);
+}
+
+// ── Track helpers — video PC only ─────────────────────────────────────────────
 
 export function addVideoTrack(track, stream) {
-    if (!state.peerConnection) return;
-    state.peerConnection.addTrack(track, stream);
+    if (!state.videoPC) return;
+    if (videoSender) {
+        videoSender.replaceTrack(track);
+    } else {
+        videoSender = state.videoPC.addTrack(track, stream);
+    }
 }
 
 export function addTrackGetSender(track, stream) {
-    if (!state.peerConnection) return null;
-    return state.peerConnection.addTrack(track, stream);
-}
-
-export function removeScreenAudioTrack() {
-    if (!state.peerConnection || !state.screenAudioSender) return;
-    try {
-        state.peerConnection.removeTrack(state.screenAudioSender);
-    } catch (e) {
-        console.warn('removeScreenAudioTrack:', e);
+    if (!state.videoPC) return null;
+    if (state.screenAudioSender) {
+        state.screenAudioSender.replaceTrack(track);
+        return state.screenAudioSender;
     }
-    state.screenAudioSender = null;
+    return state.videoPC.addTrack(track, stream);
 }
 
 export function removeVideoTracks() {
-    if (!state.peerConnection) return;
-    const senders = state.peerConnection.getSenders();
-    for (const sender of senders) {
-        if (sender.track && sender.track.kind === 'video') {
-            state.peerConnection.removeTrack(sender);
-        }
-    }
+    if (!videoSender) return;
+    videoSender.replaceTrack(null);
 }
 
-export function closePeerConnection() {
-    if (state.peerConnection) {
-        state.peerConnection.close();
-        state.peerConnection = null;
-    }
-    pendingCandidates = [];
-    makingOffer = false;
-    state.screenAudioSender = null;
-    state.remoteStream = null;
-    document.getElementById('user-2').srcObject = null;
+export function removeScreenAudioTrack() {
+    if (!state.screenAudioSender) return;
+    try { state.screenAudioSender.replaceTrack(null); } catch (e) { console.warn('removeScreenAudioTrack:', e); }
 }
+
+// ── Signaling listeners ───────────────────────────────────────────────────────
 
 export function setupSignalingListeners() {
     socket.on('user-connected', (userId, username) => {
         console.log('User connected:', userId, username);
         setConnectionStatus(null);
-        // Only auto-offer if we have any active media
         const { audio, video, screen } = state.media;
-        if (audio || video || screen) {
-            createOffer();
+        if (audio) createVoiceOffer();
+        if (video || screen) createVideoOffer();
+    });
+
+    // Voice signaling
+    socket.on('voice-offer', async (offer) => {
+        await createVoiceAnswer(offer);
+    });
+
+    socket.on('voice-answer', async (answer) => {
+        if (!state.voicePC || state.voicePC.signalingState !== 'have-local-offer') return;
+        await state.voicePC.setRemoteDescription(answer);
+        for (const c of voicePending) {
+            try { await state.voicePC.addIceCandidate(c); } catch (e) { console.warn('voice ICE (answer drain):', e); }
         }
+        voicePending = [];
     });
 
-    socket.on('offer', async (offer) => {
-        await createAnswer(offer);
-    });
-
-    socket.on('answer', async (answer) => {
-        if (!state.peerConnection) return;
-        const sigState = state.peerConnection.signalingState;
-        if (sigState === 'have-local-offer') {
-            await state.peerConnection.setRemoteDescription(answer);
-            // Drain any ICE candidates buffered before remote description arrived
-            for (const candidate of pendingCandidates) {
-                try {
-                    await state.peerConnection.addIceCandidate(candidate); // ISSUE-004
-                } catch (err) {
-                    console.warn('addIceCandidate (buffered answer) failed:', err);
-                }
-            }
-            pendingCandidates = [];
-        }
-    });
-
-    socket.on('ice-candidate', async (candidate) => {
-        if (state.peerConnection) {
-            if (state.peerConnection.remoteDescription) {
-                try {
-                    await state.peerConnection.addIceCandidate(candidate); // ISSUE-004
-                } catch (err) {
-                    console.warn('addIceCandidate failed:', err);
-                }
+    socket.on('voice-ice', async (candidate) => {
+        if (state.voicePC) {
+            if (state.voicePC.remoteDescription) {
+                try { await state.voicePC.addIceCandidate(candidate); } catch (e) { console.warn('voice ICE:', e); }
             } else {
-                pendingCandidates.push(candidate);
+                voicePending.push(candidate);
             }
         }
     });
 
-    // When the remote side stops all media, reset the remote stream to a clean empty
-    // MediaStream so incoming tracks from the next start-up land in a fresh container.
-    socket.on('user-stopped-stream', () => {
-        state.remoteStream = new MediaStream();
-        document.getElementById('user-2').srcObject = state.remoteStream;
+    // Video signaling
+    socket.on('video-offer', async (offer) => {
+        await createVideoAnswer(offer);
+    });
+
+    socket.on('video-answer', async (answer) => {
+        if (!state.videoPC || state.videoPC.signalingState !== 'have-local-offer') return;
+        await state.videoPC.setRemoteDescription(answer);
+        for (const c of videoPending) {
+            try { await state.videoPC.addIceCandidate(c); } catch (e) { console.warn('video ICE (answer drain):', e); }
+        }
+        videoPending = [];
+    });
+
+    socket.on('video-ice', async (candidate) => {
+        if (state.videoPC) {
+            if (state.videoPC.remoteDescription) {
+                try { await state.videoPC.addIceCandidate(candidate); } catch (e) { console.warn('video ICE:', e); }
+            } else {
+                videoPending.push(candidate);
+            }
+        }
+    });
+
+    // Stream reset events
+    socket.on('user-stopped-voice', () => {
+        state.remoteAudioStream = new MediaStream();
+        document.getElementById('user-2-audio').srcObject = state.remoteAudioStream;
+    });
+
+    socket.on('user-stopped-video', () => {
+        state.remoteVideoStream = new MediaStream();
+        document.getElementById('user-2').srcObject = state.remoteVideoStream;
     });
 
     socket.on('room-full', () => {
@@ -237,10 +304,8 @@ export function setupSignalingListeners() {
         window.location.href = '/';
     });
 
-    // Participant tracking
     socket.on('room-participants', (participants) => {
-        const hadRemotePeer = state.participants.size > 1 ||
-            [...state.participants.keys()].some(sid => sid !== socket.id);
+        const hadRemotePeer = [...state.participants.keys()].some(sid => sid !== socket.id);
 
         state.participants.clear();
         for (const [sid, data] of Object.entries(participants)) {
@@ -248,16 +313,13 @@ export function setupSignalingListeners() {
         }
         renderParticipants();
 
-        // ISSUE-001: if we had a remote peer and they're now gone, tear down the
-        // peer connection so the next user-connected can start a clean negotiation.
         const hasRemotePeer = [...state.participants.keys()].some(sid => sid !== socket.id);
-        if (hadRemotePeer && !hasRemotePeer && state.peerConnection) {
-            console.log('Remote peer left — closing peer connection');
-            closePeerConnection();
+        if (hadRemotePeer && !hasRemotePeer) {
+            console.log('Remote peer left — closing connections');
+            closeVoiceConnection();
+            closeVideoConnection();
         }
-        if (!hasRemotePeer) {
-            setConnectionStatus('Waiting for other participant…');
-        }
+        if (!hasRemotePeer) setConnectionStatus('Waiting for other participant…');
     });
 
     socket.on('participant-updated', (socketId, data) => {
@@ -268,12 +330,9 @@ export function setupSignalingListeners() {
         state.participants.set(socketId, data);
         renderParticipants();
 
-        // When a remote peer stops all video/screen, remove stale video tracks so
-        // the element doesn't show a frozen last frame — but keep srcObject intact
-        // so the audio channel continues to play uninterrupted.
         if (socketId !== socket.id && hadVideo && !hasVideo) {
-            if (state.remoteStream) {
-                state.remoteStream.getVideoTracks().forEach(t => state.remoteStream.removeTrack(t));
+            if (state.remoteVideoStream) {
+                state.remoteVideoStream.getVideoTracks().forEach(t => state.remoteVideoStream.removeTrack(t));
             }
         }
     });
