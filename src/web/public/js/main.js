@@ -6,6 +6,7 @@ import { setupFriendsListeners } from './friends.js';
 import { setupRoomUI, isInRoom } from './room.js';
 import { showOnboarding } from './onboarding.js';
 import { state, saveAudioSettings, loadRtcConfig } from './state.js';
+import { applyVideoSizes } from './video-size.js';
 
 // Load TURN config from server before anything that creates a peer connection
 await loadRtcConfig();
@@ -16,6 +17,9 @@ setupUIListeners();
 
 // Only initialize call features when inside a room
 if (isInRoom()) {
+    // Apply saved video size preferences
+    applyVideoSizes();
+
     // Populate device dropdowns; re-populate after first permission grant so labels appear
     populateDeviceSelects();
     navigator.mediaDevices?.addEventListener('devicechange', () => populateDeviceSelects());

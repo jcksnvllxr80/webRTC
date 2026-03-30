@@ -1,5 +1,6 @@
 import { state, socket } from './state.js';
 import { addFriendForParticipant } from './friends.js';
+import { createSizeGroup } from './video-size.js';
 
 export function isInRoom() {
     return !!state.roomId;
@@ -27,6 +28,10 @@ export function renderParticipants() {
 
         li.appendChild(dot);
         li.appendChild(name);
+
+        // Add video size controls
+        const isLocal = socketId === socket.id;
+        li.appendChild(createSizeGroup(isLocal));
 
         // Add "Add Friend" button for non-self participants
         if (socketId !== socket.id) {
