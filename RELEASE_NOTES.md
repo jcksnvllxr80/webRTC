@@ -1,5 +1,13 @@
 # Release Notes
 
+## v0.17.3 — 2026-03-30
+
+### Fix: participant name column auto-sizes to widest name
+
+- **Dynamic name column width** — Participant name cells now automatically resize to the widest name in the list after each render, keeping all rows aligned. Falls back to a 100px minimum when only one participant is present or names are short.
+
+---
+
 ## v0.17.2 — 2026-03-30
 
 ### Fix: invite button respects live room membership

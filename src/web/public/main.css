@@ -531,10 +531,11 @@ body{
 }
 
 .participant-name{
-    min-width: 0;
+    width: 100px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .participant-controls{

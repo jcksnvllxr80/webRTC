@@ -68,6 +68,12 @@ export function renderParticipants() {
 
         ul.appendChild(li);
     }
+
+    // Sync all name columns to the widest natural width
+    const nameEls = ul.querySelectorAll('.participant-name');
+    nameEls.forEach(el => { el.style.width = ''; }); // reset so scrollWidth is natural
+    const widest = Math.max(100, ...[...nameEls].map(el => el.scrollWidth));
+    nameEls.forEach(el => { el.style.width = widest + 'px'; });
 }
 
 export function updateControlsForMediaState() {
