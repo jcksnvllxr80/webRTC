@@ -1,5 +1,16 @@
 # Release Notes
 
+## v0.16.0 — 2026-03-30
+
+### Feat: per-participant video controls and chat improvements
+
+- **Add Friend buttons in participant list** — Each participant now has an [Add Friend] button in the "In this room" list, enabling bidirectional friend addition regardless of join order. Friends can now be added mid-call.
+- **Video size presets (S/M/L)** — Control the width ratio of local and remote videos independently via compact [S][M][L] buttons in the participant list. Sizes persist in localStorage.
+- **File paste support** — Copy files from file explorer and paste them into chat (Ctrl+V) alongside drag-and-drop support. Non-image files queue in the attach preview strip; images still insert inline.
+- **Screen share echo cancellation** — Fixed echo when user B spoke while user A was sharing screen with audio. Echo cancellation now prevents remote audio from being re-captured by the system audio loopback.
+
+---
+
 ## v0.15.2 — 2026-03-30
 
 ### Arch: separate voice and video into independent peer connections
