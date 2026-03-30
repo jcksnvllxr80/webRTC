@@ -1,4 +1,5 @@
-import { state } from './state.js';
+import { state, socket } from './state.js';
+import { addFriendForParticipant } from './friends.js';
 
 export function isInRoom() {
     return !!state.roomId;
@@ -9,7 +10,7 @@ export function renderParticipants() {
     if (!ul) return;
 
     ul.innerHTML = '';
-    for (const [, data] of state.participants) {
+    for (const [socketId, data] of state.participants) {
         const li = document.createElement('li');
 
         // Pick dot class based on highest active media
@@ -26,6 +27,27 @@ export function renderParticipants() {
 
         li.appendChild(dot);
         li.appendChild(name);
+
+        // Add "Add Friend" button for non-self participants
+        if (socketId !== socket.id) {
+            const btn = document.createElement('button');
+            btn.className = 'participant-add-friend-btn';
+            btn.textContent = 'Add Friend';
+            btn.addEventListener('click', () => addFriendForParticipant(data.username, btn));
+            li.appendChild(btn);
+
+            // Async check if already friends
+            fetch(`/api/friends/check/${encodeURIComponent(data.username)}`)
+                .then(r => r.json())
+                .then(({ isFriend }) => {
+                    if (isFriend) {
+                        btn.textContent = 'Already Friends';
+                        btn.disabled = true;
+                    }
+                })
+                .catch(() => {});
+        }
+
         ul.appendChild(li);
     }
 }

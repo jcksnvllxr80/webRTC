@@ -1,17 +1,10 @@
 import { state, socket } from './state.js';
-import { isInRoom } from './room.js';
 
-let remoteUsername = null;
 let onlineSet = new Set();
 let recentInvites = []; // { fromUsername, roomId, roomLink, ts }
 let unreadInviteCount = 0;
 
-export function getRemoteUsername() {
-    return remoteUsername;
-}
-
 export function setupFriendsListeners() {
-    const addFriendBtn = document.getElementById('add-friend-btn');
 
     // Listen for online/offline events
     socket.on('user-online', (username) => {
@@ -52,42 +45,6 @@ export function setupFriendsListeners() {
         document.addEventListener('click', () => { invitePanel.hidden = true; });
     }
 
-    if (isInRoom()) {
-        socket.on('user-connected', (userId, username) => {
-            if (username) {
-                remoteUsername = username;
-                updateAddFriendButton();
-            }
-        });
-
-        if (addFriendBtn) {
-            addFriendBtn.addEventListener('click', async () => {
-                if (!remoteUsername) return;
-                addFriendBtn.disabled = true;
-                addFriendBtn.textContent = 'Adding...';
-                try {
-                    const res = await fetch('/api/friends', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ friendUsername: remoteUsername })
-                    });
-                    if (res.ok) {
-                        addFriendBtn.textContent = 'Added!';
-                        loadFriendsList();
-                    } else {
-                        const data = await res.json();
-                        addFriendBtn.textContent = 'Add Friend';
-                        addFriendBtn.disabled = false;
-                        alert(data.error || 'Could not add friend');
-                    }
-                } catch (err) {
-                    console.error('Add friend error:', err);
-                    addFriendBtn.textContent = 'Add Friend';
-                    addFriendBtn.disabled = false;
-                }
-            });
-        }
-    }
 
     loadOnlineUsers().then(() => loadFriendsList());
 }
@@ -117,32 +74,29 @@ function updateStatusDots(username, isOnline) {
     });
 }
 
-async function updateAddFriendButton() {
-    const btn = document.getElementById('add-friend-btn');
-    const label = document.getElementById('remote-username');
-    if (!btn || !label) return;
 
-    if (!remoteUsername) {
-        btn.style.display = 'none';
-        label.textContent = '';
-        return;
-    }
-
-    label.textContent = remoteUsername;
-
+export async function addFriendForParticipant(username, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Adding...';
     try {
-        const res = await fetch(`/api/friends/check/${encodeURIComponent(remoteUsername)}`);
-        const { isFriend } = await res.json();
-        if (isFriend) {
-            btn.textContent = 'Already Friends';
-            btn.disabled = true;
+        const res = await fetch('/api/friends', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ friendUsername: username })
+        });
+        if (res.ok) {
+            btn.textContent = 'Added!';
+            loadFriendsList();
         } else {
+            const data = await res.json();
             btn.textContent = 'Add Friend';
             btn.disabled = false;
+            alert(data.error || 'Could not add friend');
         }
-        btn.style.display = 'inline-block';
     } catch (err) {
-        console.error('Check friend error:', err);
+        console.error('Add friend error:', err);
+        btn.textContent = 'Add Friend';
+        btn.disabled = false;
     }
 }
 
@@ -204,7 +158,7 @@ async function loadFriendsList() {
                 const btnGroup = document.createElement('span');
                 btnGroup.className = 'friend-actions';
 
-                if (isInRoom()) {
+                if (!!state.roomId) {
                     const isOnline = onlineSet.has(f.friend_username);
                     const isInRoomWithYou = [...state.participants.values()].some(p => p.username === f.friend_username);
                     const inviteBtn = document.createElement('button');
@@ -242,9 +196,6 @@ async function loadFriendsList() {
                     removeBtn.textContent = 'Removing...';
                     await fetch(`/api/friends/${encodeURIComponent(f.friend_username)}`, { method: 'DELETE' });
                     loadFriendsList();
-                    if (remoteUsername === f.friend_username) {
-                        updateAddFriendButton();
-                    }
                 });
                 btnGroup.appendChild(removeBtn);
 

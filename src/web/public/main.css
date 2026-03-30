@@ -549,6 +549,31 @@ body{
     box-shadow: 0 0 4px var(--c-info);
 }
 
+.participant-add-friend-btn{
+    padding: 2px 8px;
+    font-size: var(--text-xs);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    background: var(--c-elevated);
+    color: var(--c-text-secondary);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    transition: background var(--dur-micro) ease-out, color var(--dur-micro) ease-out;
+    margin-left: auto;
+}
+
+.participant-add-friend-btn:hover:not(:disabled){
+    background: var(--c-success);
+    color: #fff;
+    border-color: transparent;
+}
+
+.participant-add-friend-btn:disabled{
+    opacity: 0.5;
+    cursor: default;
+}
+
 /* ── Join/Leave audio button accents ── */
 #join-audio-btn{
     background: var(--c-accent) !important;
