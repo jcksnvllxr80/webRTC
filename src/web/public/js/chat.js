@@ -412,6 +412,23 @@ function addFileToChat(username, { filename, mimeType, data, size, msgId }) {
     attachReactionTrigger(bar, id);
 
     msg.appendChild(header);
+
+    // Inline preview for images and videos
+    if (mimeType?.startsWith('image/')) {
+        const preview = document.createElement('img');
+        preview.src = data;
+        preview.className = 'chat-file-preview-img chat-inline-img';
+        preview.alt = filename;
+        msg.appendChild(preview);
+    } else if (mimeType?.startsWith('video/')) {
+        const preview = document.createElement('video');
+        preview.src = data;
+        preview.className = 'chat-file-preview-video';
+        preview.controls = true;
+        preview.preload = 'metadata';
+        msg.appendChild(preview);
+    }
+
     msg.appendChild(card);
     msg.appendChild(bar);
     messagesDiv.appendChild(msg);

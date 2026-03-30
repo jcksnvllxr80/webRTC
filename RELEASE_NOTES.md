@@ -1,5 +1,18 @@
 # Release Notes
 
+## v0.17.0 — 2026-03-30
+
+### Feat: UX polish — auto-join audio, file previews, participant VU, button fixes
+
+- **Auto-join audio** — Microphone audio is joined automatically when entering a room. Can be disabled via the new "Auto-join Audio" toggle in the settings panel (persists in localStorage).
+- **Chat file previews** — Shared image files now render an inline preview above the download card; video files show an inline `<video>` player. Both respect the existing image lightbox on click.
+- **Participant mic input level** — The local "me" row in the participant list now shows a live input-level VU bar (same width as the Add Friend button) instead of a blank space, keeping the button columns aligned.
+- **Notification panel positioning** — Fixed the invite/notification panel falling off the left edge of the screen; panel is now anchored left-aligned under the bell button.
+- **Controls bar left-justified** — Added explicit `justify-content: flex-start` to the controls bar.
+- **S/M/L size buttons** — Active and hovered state now uses black text (`--c-accent-text`) instead of white for legibility on the green background.
+
+---
+
 ## v0.16.0 — 2026-03-30
 
 ### Feat: per-participant video controls and chat improvements

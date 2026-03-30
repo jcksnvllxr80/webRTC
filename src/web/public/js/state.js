@@ -20,7 +20,7 @@ export const state = {
 };
 
 function loadAudioSettings() {
-    const defaults = { noiseSuppression: true, echoCancellation: true, autoGainControl: true, micVolume: 1.0 };
+    const defaults = { noiseSuppression: true, echoCancellation: true, autoGainControl: true, micVolume: 1.0, autoJoinAudio: true };
     try {
         const saved = JSON.parse(localStorage.getItem('webrtc-audio-settings'));
         if (saved) return { ...defaults, ...saved };
