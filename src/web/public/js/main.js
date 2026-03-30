@@ -152,17 +152,19 @@ if (isInRoom()) {
         saveAudioSettings();
     });
 
-    // VU meter animation loop
+    // VU meter animation loop — drives settings panel bar + participant list bar
     const vuData = new Uint8Array(128);
     function animateVu() {
         const analyser = getMicAnalyser();
-        if (analyser && micVuBar) {
+        let level = 0;
+        if (analyser) {
             analyser.getByteFrequencyData(vuData);
             const avg = vuData.reduce((a, b) => a + b, 0) / vuData.length;
-            micVuBar.style.width = Math.min(100, (avg / 255) * 300) + '%';
-        } else if (micVuBar) {
-            micVuBar.style.width = '0%';
+            level = Math.min(100, (avg / 255) * 300);
         }
+        if (micVuBar) micVuBar.style.width = level + '%';
+        const pVuBar = document.querySelector('.participant-vu-bar');
+        if (pVuBar) pVuBar.style.width = level + '%';
         requestAnimationFrame(animateVu);
     }
     animateVu();
@@ -257,8 +259,20 @@ if (isInRoom()) {
     toggleEC.addEventListener('change', () => handleToggle(toggleEC, 'echoCancellation'));
     toggleAGC.addEventListener('change', () => handleToggle(toggleAGC, 'autoGainControl'));
 
+    const toggleAutoJoin = document.getElementById('toggle-autojoin-audio');
+    toggleAutoJoin.checked = state.audioSettings.autoJoinAudio ?? true;
+    toggleAutoJoin.addEventListener('change', () => {
+        state.audioSettings.autoJoinAudio = toggleAutoJoin.checked;
+        saveAudioSettings();
+    });
+
     setupSignalingListeners();
     setupChatListeners();
+
+    // Auto-join audio on room entry if setting is enabled
+    if (state.audioSettings.autoJoinAudio) {
+        initAudio().catch(() => {});
+    }
 }
 
 // Friends are always available

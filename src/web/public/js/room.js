@@ -37,8 +37,16 @@ export function renderParticipants() {
         const isLocal = socketId === socket.id;
         controls.appendChild(createSizeGroup(isLocal));
 
-        // Add "Add Friend" button for non-self participants
-        if (socketId !== socket.id) {
+        if (socketId === socket.id) {
+            // Local user: show a live mic input-level bar in place of the Add Friend button
+            const vuWrap = document.createElement('div');
+            vuWrap.className = 'participant-vu';
+            const vuBar = document.createElement('div');
+            vuBar.className = 'participant-vu-bar';
+            vuWrap.appendChild(vuBar);
+            controls.appendChild(vuWrap);
+        } else {
+            // Remote user: Add Friend button
             const btn = document.createElement('button');
             btn.className = 'participant-add-friend-btn';
             btn.textContent = 'Add Friend';

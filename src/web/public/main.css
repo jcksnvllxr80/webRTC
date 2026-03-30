@@ -137,8 +137,8 @@ body{
 
 .invite-panel{
     position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
+    top: calc(100% + 6px);
+    left: 0;
     min-width: 260px;
     background: var(--c-elevated);
     border: 1px solid var(--c-border);
@@ -592,6 +592,24 @@ body{
     cursor: default;
 }
 
+/* ── Participant mic VU (local user) ── */
+.participant-vu{
+    width: 58px;
+    height: 22px;
+    background: var(--c-overlay);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-sm);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.participant-vu-bar{
+    height: 100%;
+    width: 0%;
+    background: var(--c-accent);
+    border-radius: var(--r-sm);
+    transition: width 60ms linear;
+}
+
 .video-size-group{
     display: flex;
     gap: 3px;
@@ -611,13 +629,13 @@ body{
 
 .video-size-btn:hover:not(.active){
     background: var(--c-accent);
-    color: white;
+    color: var(--c-accent-text);
     border-color: var(--c-accent);
 }
 
 .video-size-btn.active{
     background: var(--c-accent);
-    color: white;
+    color: var(--c-accent-text);
     border-color: var(--c-accent);
     font-weight: 700;
 }
@@ -1036,6 +1054,7 @@ video{
 /* ── Controls bar (below video) ── */
 .controls-bar{
     display: flex;
+    justify-content: flex-start;
     align-items: center;
     gap: var(--sp-sm);
     padding: 10px 0;
@@ -1574,6 +1593,27 @@ img.chat-inline-img{ cursor: zoom-in; }
     flex-shrink: 0;
 }
 .file-card-dl:hover{ background: var(--c-accent-muted); }
+
+/* ── File preview (image / video) ── */
+.chat-file-preview-img{
+    display: block;
+    max-width: 280px;
+    max-height: 200px;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--c-border-subtle);
+    margin: var(--sp-xs) 0 2px;
+    object-fit: contain;
+    cursor: zoom-in;
+    background: var(--c-base);
+}
+.chat-file-preview-video{
+    display: block;
+    max-width: 300px;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--c-border-subtle);
+    margin: var(--sp-xs) 0 2px;
+    background: var(--c-base);
+}
 
 /* ── Message reactions ── */
 .msg-reactions{
