@@ -1,5 +1,18 @@
 # Release Notes
 
+## v0.15.2 — 2026-03-30
+
+### Arch: separate voice and video into independent peer connections
+
+- Voice (`voicePC`) and video (`videoPC`) now use completely separate `RTCPeerConnection`s with separate signaling events (`voice-offer/answer/ice`, `video-offer/answer/ice`)
+- `stopVideo()` closes the video PC entirely — the voice PC is never referenced or touched
+- `leaveAudio()` closes the voice PC entirely — the video PC is never referenced or touched
+- Remote audio plays through a dedicated `<audio id="user-2-audio">` element; remote video plays through `<video id="user-2">` — the two elements are fully independent
+- Mute-remote button now correctly targets the audio element
+- Server updated with relay handlers for all new signaling events (`user-stopped-voice`, `user-stopped-video`) — **requires server redeploy**
+
+---
+
 ## v0.15.1 — 2026-03-29
 
 ### Fix: voice channel audio drops when stopping video

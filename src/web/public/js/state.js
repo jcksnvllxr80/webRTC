@@ -5,14 +5,16 @@ function getRoomIdFromUrl() {
 }
 
 export const state = {
-    peerConnection: null,
+    voicePC: null,          // RTCPeerConnection — mic audio only
+    videoPC: null,          // RTCPeerConnection — camera / screen / screen audio
     localStream: null,
-    remoteStream: null,
+    remoteVideoStream: null,  // tracks from videoPC — attached to <video id="user-2">
+    remoteAudioStream: null,  // tracks from voicePC — attached to <audio id="user-2-audio">
     roomId: getRoomIdFromUrl(),
     media: { audio: false, video: false, screen: false },
-    participants: new Map(),   // socketId -> { username, media }
-    audioStream: null,         // mic-only stream (separate from localStream which holds video)
-    screenAudioSender: null,   // RTCRtpSender for screen-share audio track (if any)
+    participants: new Map(),  // socketId -> { username, media }
+    audioStream: null,        // raw mic stream
+    screenAudioSender: null,  // RTCRtpSender for screen-share audio track (if any)
     audioSettings: loadAudioSettings()
 };
 

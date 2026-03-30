@@ -307,17 +307,19 @@ io.on('connection', (socket) => {
         io.in(roomId).emit('participant-updated', socket.id, participant);
     });
 
-    socket.on('offer', (offer, roomId) => {
-        socket.to(roomId).emit('offer', offer);
-    });
+    // Voice channel signaling
+    socket.on('voice-offer',  (offer, roomId)     => socket.to(roomId).emit('voice-offer',  offer));
+    socket.on('voice-answer', (answer, roomId)    => socket.to(roomId).emit('voice-answer', answer));
+    socket.on('voice-ice',    (candidate, roomId) => socket.to(roomId).emit('voice-ice',    candidate));
 
-    socket.on('answer', (answer, roomId) => {
-        socket.to(roomId).emit('answer', answer);
-    });
+    // Video channel signaling
+    socket.on('video-offer',  (offer, roomId)     => socket.to(roomId).emit('video-offer',  offer));
+    socket.on('video-answer', (answer, roomId)    => socket.to(roomId).emit('video-answer', answer));
+    socket.on('video-ice',    (candidate, roomId) => socket.to(roomId).emit('video-ice',    candidate));
 
-    socket.on('ice-candidate', (candidate, roomId) => {
-        socket.to(roomId).emit('ice-candidate', candidate);
-    });
+    // Stream teardown notifications
+    socket.on('user-stopped-voice', (roomId) => socket.to(roomId).emit('user-stopped-voice'));
+    socket.on('user-stopped-video', (roomId) => socket.to(roomId).emit('user-stopped-video'));
 
     socket.on('send-room-invite', ({ toUsername, roomId }) => {
         const targetSockets = onlineUsers.get(toUsername);
