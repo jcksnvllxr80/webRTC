@@ -522,16 +522,16 @@ body{
 }
 
 #participants li{
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     font-size: var(--text-sm);
     min-width: 0;
 }
 
 .participant-name{
     min-width: 0;
-    flex: 1 1 auto;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -539,11 +539,9 @@ body{
 
 .participant-controls{
     display: flex;
+    gap: 4px;
     align-items: center;
-    gap: 6px;
-    margin-left: auto;
     flex-wrap: wrap;
-    justify-content: flex-end;
 }
 
 .media-state-dot{
@@ -569,7 +567,9 @@ body{
 }
 
 .participant-add-friend-btn{
-    padding: 2px 8px;
+    width: 100px;
+    height: 22px;
+    padding: 0 8px;
     font-size: var(--text-xs);
     font-family: var(--font-sans);
     font-weight: 500;
@@ -579,6 +579,10 @@ body{
     border-radius: var(--r-sm);
     cursor: pointer;
     transition: background var(--dur-micro) ease-out, color var(--dur-micro) ease-out;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .participant-add-friend-btn:hover:not(:disabled){
@@ -594,7 +598,7 @@ body{
 
 /* ── Participant mic VU (local user) ── */
 .participant-vu{
-    width: 58px;
+    width: 100px;
     height: 22px;
     background: var(--c-overlay);
     border: 1px solid var(--c-border);
@@ -1594,14 +1598,53 @@ img.chat-inline-img{ cursor: zoom-in; }
 }
 .file-card-dl:hover{ background: var(--c-accent-muted); }
 
-/* ── File preview (image / video) ── */
+.file-card-expand-btn{
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--c-accent);
+    background: transparent;
+    border: 1px solid rgba(173,255,47,0.3);
+    border-radius: var(--r-sm);
+    padding: 3px 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--dur-micro) ease;
+    flex-shrink: 0;
+}
+.file-card-expand-btn:hover{ background: var(--c-accent-muted); }
+
+/* ── File preview (image / video / text) ── */
+.chat-file-preview-container{
+    margin: var(--sp-xs) 0 2px;
+}
+.chat-file-preview-text{
+    display: block;
+    width: 100%;
+    max-width: 500px;
+    max-height: 300px;
+    padding: var(--sp-md);
+    background: var(--c-base);
+    border: 1px solid var(--c-border-subtle);
+    border-radius: var(--r-sm);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+    overflow: auto;
+    color: var(--c-text-secondary);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin: 0;
+}
+
 .chat-file-preview-img{
     display: block;
+    width: 100%;
     max-width: 280px;
+    height: auto;
     max-height: 200px;
     border-radius: var(--r-sm);
     border: 1px solid var(--c-border-subtle);
-    margin: var(--sp-xs) 0 2px;
+    margin: 0;
     object-fit: contain;
     cursor: zoom-in;
     background: var(--c-base);
@@ -1609,9 +1652,11 @@ img.chat-inline-img{ cursor: zoom-in; }
 .chat-file-preview-video{
     display: block;
     max-width: 300px;
+    width: 100%;
+    max-height: 200px;
     border-radius: var(--r-sm);
     border: 1px solid var(--c-border-subtle);
-    margin: var(--sp-xs) 0 2px;
+    margin: 0;
     background: var(--c-base);
 }
 
