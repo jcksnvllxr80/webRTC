@@ -6,9 +6,9 @@ const muteState = {
 };
 
 function getRemoteMediaEls() {
+    // Only the dedicated voice audio element — NOT user-2 (video/screen-share audio)
     return [
-        document.getElementById('user-2-audio'),
-        document.getElementById('user-2')
+        document.getElementById('user-2-audio')
     ].filter(Boolean);
 }
 
