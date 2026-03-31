@@ -320,7 +320,6 @@ body{
 .user-menu{
     position: absolute;
     top: calc(100% + 6px);
-    right: 0;
     background: var(--c-elevated);
     border: 1px solid var(--c-border);
     border-radius: var(--r-md);
