@@ -5,9 +5,11 @@ import { refreshInviteButtonStates } from './friends.js';
 // ── per-connection state ──────────────────────────────────────────────────────
 let voiceMakingOffer = false;
 let voicePending = [];
+let voiceIgnoreOffer = false;
 
 let videoMakingOffer = false;
 let videoPending = [];
+let videoIgnoreOffer = false;
 let videoSender = null; // RTCRtpSender — reused via replaceTrack to avoid renegotiation
 
 function setConnectionStatus(message) {
@@ -15,6 +17,14 @@ function setConnectionStatus(message) {
     if (!el) return;
     if (message) { el.textContent = message; el.hidden = false; }
     else { el.hidden = true; }
+}
+
+// Perfect Negotiation: the "polite" peer yields on glare (simultaneous offers).
+// Lower socket.id is polite.
+function isPolite() {
+    const remotePeer = [...state.participants.keys()].find(sid => sid !== socket.id);
+    if (!remotePeer) return true; // no remote peer, be polite by default
+    return socket.id < remotePeer;
 }
 
 // ── Voice PC ──────────────────────────────────────────────────────────────────
@@ -72,6 +82,7 @@ export function closeVoiceConnection() {
     state.voicePC = null;
     voiceMakingOffer = false;
     voicePending = [];
+    voiceIgnoreOffer = false;
     state.remoteAudioStream = null;
     document.getElementById('user-2-audio').srcObject = null;
 }
@@ -168,6 +179,7 @@ export function closeVideoConnection() {
     state.videoPC = null;
     videoMakingOffer = false;
     videoPending = [];
+    videoIgnoreOffer = false;
     videoSender = null;
     state.screenAudioSender = null;
     state.remoteVideoStream = null;
@@ -271,14 +283,23 @@ export function setupSignalingListeners() {
         }
     });
 
-    // Voice signaling
+    // Voice signaling — Perfect Negotiation glare handling
     socket.on('voice-offer', async (offer) => {
+        ensureVoiceConnection();
+        const offerCollision = voiceMakingOffer || state.voicePC.signalingState !== 'stable';
+        voiceIgnoreOffer = !isPolite() && offerCollision;
+        if (voiceIgnoreOffer) return;
         await createVoiceAnswer(offer);
     });
 
     socket.on('voice-answer', async (answer) => {
-        if (!state.voicePC || state.voicePC.signalingState !== 'have-local-offer') return;
-        await state.voicePC.setRemoteDescription(answer);
+        if (!state.voicePC) return;
+        try {
+            await state.voicePC.setRemoteDescription(answer);
+        } catch (e) {
+            console.warn('voice-answer setRemoteDescription:', e);
+            return;
+        }
         for (const c of voicePending) {
             try { await state.voicePC.addIceCandidate(c); } catch (e) { console.warn('voice ICE (answer drain):', e); }
         }
@@ -286,23 +307,31 @@ export function setupSignalingListeners() {
     });
 
     socket.on('voice-ice', async (candidate) => {
-        if (state.voicePC) {
-            if (state.voicePC.remoteDescription) {
-                try { await state.voicePC.addIceCandidate(candidate); } catch (e) { console.warn('voice ICE:', e); }
-            } else {
-                voicePending.push(candidate);
-            }
+        if (!state.voicePC || voiceIgnoreOffer) return;
+        if (state.voicePC.remoteDescription) {
+            try { await state.voicePC.addIceCandidate(candidate); } catch (e) { console.warn('voice ICE:', e); }
+        } else {
+            voicePending.push(candidate);
         }
     });
 
-    // Video signaling
+    // Video signaling — Perfect Negotiation glare handling
     socket.on('video-offer', async (offer) => {
+        ensureVideoConnection();
+        const offerCollision = videoMakingOffer || state.videoPC.signalingState !== 'stable';
+        videoIgnoreOffer = !isPolite() && offerCollision;
+        if (videoIgnoreOffer) return;
         await createVideoAnswer(offer);
     });
 
     socket.on('video-answer', async (answer) => {
-        if (!state.videoPC || state.videoPC.signalingState !== 'have-local-offer') return;
-        await state.videoPC.setRemoteDescription(answer);
+        if (!state.videoPC) return;
+        try {
+            await state.videoPC.setRemoteDescription(answer);
+        } catch (e) {
+            console.warn('video-answer setRemoteDescription:', e);
+            return;
+        }
         for (const c of videoPending) {
             try { await state.videoPC.addIceCandidate(c); } catch (e) { console.warn('video ICE (answer drain):', e); }
         }
@@ -310,12 +339,11 @@ export function setupSignalingListeners() {
     });
 
     socket.on('video-ice', async (candidate) => {
-        if (state.videoPC) {
-            if (state.videoPC.remoteDescription) {
-                try { await state.videoPC.addIceCandidate(candidate); } catch (e) { console.warn('video ICE:', e); }
-            } else {
-                videoPending.push(candidate);
-            }
+        if (!state.videoPC || videoIgnoreOffer) return;
+        if (state.videoPC.remoteDescription) {
+            try { await state.videoPC.addIceCandidate(candidate); } catch (e) { console.warn('video ICE:', e); }
+        } else {
+            videoPending.push(candidate);
         }
     });
 

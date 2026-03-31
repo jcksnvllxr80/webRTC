@@ -1,5 +1,14 @@
 # Release Notes
 
+## v1.0.3 — 2026-03-31
+
+### Bug fix
+
+- **Audio works for both peers on join (Perfect Negotiation)** — When both users joined with audio enabled simultaneously, each sent a `voice-offer` before receiving the other's, causing "glare". Both sides dropped answers because they were no longer in `have-local-offer` state, so ICE never connected and neither user could hear the other. Fixed by implementing the WebRTC Perfect Negotiation pattern: peers are assigned polite/impolite roles via socket ID comparison. The impolite peer ignores a colliding incoming offer and keeps its own; the polite peer rolls back and answers instead. Applies to both the voice and video peer connections.
+- **AudioContext suspended on auto-join** — When auto-join audio is enabled, the `AudioContext` was created on page load without a user gesture and started in `"suspended"` state, causing the Web Audio pipeline to output silence. Fixed by calling `audioCtx.resume()` immediately after creation.
+
+---
+
 ## v1.0.2 — 2026-03-31
 
 ### Bug fix

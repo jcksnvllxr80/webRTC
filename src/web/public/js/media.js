@@ -54,6 +54,9 @@ let audioDestination = null; // MediaStreamAudioDestinationNode — processed st
 
 function setupAudioPipeline(rawStream) {
     audioCtx = new AudioContext();
+    // Resume in case the AudioContext was created in "suspended" state
+    // (e.g. auto-join audio on page load without a user gesture)
+    if (audioCtx.state === 'suspended') audioCtx.resume();
     gainNode = audioCtx.createGain();
     gainNode.gain.value = state.audioSettings.micVolume ?? 1.0;
     analyserNode = audioCtx.createAnalyser();
