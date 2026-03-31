@@ -1,6 +1,6 @@
 {
   "name": "freertc",
-  "version": "0.18.2",
+  "version": "1.0.0",
   "description": "FreeRTC — self-hosted peer-to-peer video, audio, and chat\n",
   "main": "src/desktop/main.js",
   "scripts": {
