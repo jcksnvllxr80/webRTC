@@ -1,5 +1,16 @@
 # Release Notes
 
+## v1.0.0 — 2026-03-30
+
+### Screen Share Audio & Remote Mute Fixes
+
+- **Screen share no longer mutes remote audio** — Starting a screen share previously silenced the remote user's voice and locked the speaker button to prevent echo. Both restrictions are removed; you can always hear the other person and toggle mute freely.
+- **No system audio capture** — Screen share now captures video only in the Electron desktop app. In the browser, `systemAudio: 'exclude'` ensures only the shared tab's audio (e.g. a YouTube tab) is sent — window and screen shares do not capture system audio, eliminating echo paths.
+- **Speaker button always enabled** — `systemMuted` state and its lock logic removed from `remote-audio.js`; the mute button is fully user-controlled at all times.
+- **Room bar layout** — Room link input now stretches to fill the full space between the room label and the Copy Link / Leave buttons. Leave button hover is light red.
+
+---
+
 ## v0.18.2 — 2026-03-30
 
 ### Fix: camera/mic in packaged macOS app
