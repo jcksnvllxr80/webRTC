@@ -589,8 +589,8 @@ export function createChatEditor({ editableEl, onSubmit }) {
           : '/api/gifs/trending';
         const res = await fetch(url);
         const data = await res.json();
-        if (data.error) { grid.innerHTML = `<span class="gif-status gif-error">${data.error}</span>`; return; }
-        if (!data.length) { grid.innerHTML = '<span class="gif-status">No results</span>'; return; }
+        if (data.error) { grid.innerHTML = ''; const errEl = document.createElement('span'); errEl.className = 'gif-status gif-error'; errEl.textContent = data.error; grid.appendChild(errEl); return; }
+        if (!data.length) { grid.innerHTML = ''; const emptyEl = document.createElement('span'); emptyEl.className = 'gif-status'; emptyEl.textContent = 'No results'; grid.appendChild(emptyEl); return; }
         grid.innerHTML = '';
         for (const gif of data) {
           const img = document.createElement('img');

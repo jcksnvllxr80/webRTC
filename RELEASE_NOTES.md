@@ -1,5 +1,44 @@
 # Release Notes
 
+## v0.18.0 — 2026-03-30
+
+### Security Hardening
+
+Full-codebase security audit: 22 findings identified, 19 resolved. All critical and high-severity issues fixed.
+
+**Breaking changes:**
+- All POST/DELETE requests now require the header `X-Requested-With: FreeRTC` (CSRF protection)
+- Usernames restricted to letters, numbers, hyphens, underscores (3–32 chars)
+- Password minimum raised from 6 to 8 characters
+- Room IDs are now 32 hex chars (was 8)
+
+**Critical fixes:**
+- Session secret auto-generated and persisted (was hardcoded as `'your-secret-key'`)
+- Stored XSS via username in invite toasts eliminated
+
+**High-severity fixes:**
+- Session cookie secured (`secure`, `httpOnly`, `sameSite: strict`)
+- CSRF protection on all state-changing endpoints
+- Security headers: CSP, X-Frame-Options, HSTS, X-Content-Type-Options, Referrer-Policy
+- Socket.IO room membership enforced on all event handlers
+- `bcrypt` upgraded to v6 — 0 `npm audit` vulnerabilities
+
+**Other fixes:**
+- Rate limiting on auth (15 req/15min), API (60 req/min), and per-socket chat (token bucket)
+- Async bcrypt — no longer blocks event loop
+- Session store switched to SQLite (`data/sessions.db`)
+- Username enumeration eliminated, SVG data URIs blocked in edit handler
+- Electron: selective self-signed cert handling replaces blanket cert bypass
+- Version endpoint exposes only major.minor
+- GIF panel error rendering uses textContent
+
+**Dependencies added:** `express-rate-limit`, `better-sqlite3-session-store`
+**Dependencies upgraded:** `bcrypt` 5.1.1 → 6.0.0
+
+See `SECURITY_AUDIT.md` for the full report.
+
+---
+
 ## v0.17.3 — 2026-03-30
 
 ### Fix: participant name column auto-sizes to widest name

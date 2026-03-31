@@ -463,8 +463,17 @@ const appIcon = fs.existsSync(iconPath)
         return nativeImage.createFromBuffer(buf, { width: size, height: size });
     })();
 
-// Handle self-signed certificates
-app.commandLine.appendSwitch('ignore-certificate-errors');
+// Handle self-signed certificates: allow self-signed certs only (not expired/wrong-host/revoked)
+app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
+    if (error === 'net::ERR_CERT_AUTHORITY_INVALID') {
+        logger.warn(`Accepting self-signed certificate for ${url}`);
+        event.preventDefault();
+        callback(true);
+    } else {
+        logger.error(`Rejecting certificate for ${url}: ${error}`);
+        callback(false);
+    }
+});
 
 function configureDesktopPermissions() {
     const allowedPermissions = new Set(['media', 'display-capture', 'fullscreen', 'clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']);
@@ -485,6 +494,8 @@ function configureDesktopPermissions() {
 function attemptConnect(url) {
     return new Promise((resolve, reject) => {
         logger.debug(`HTTP probe: GET ${url}/login.html`);
+        // rejectUnauthorized: false is required for the initial probe to self-signed servers.
+        // The certificate-error handler governs trust for actual page loads.
         const request = https.get(url + '/login.html', {
             rejectUnauthorized: false
         }, (response) => {

@@ -34,17 +34,17 @@ db.exec(`
 
 const SALT_ROUNDS = 10;
 
-function createUser(username, password) {
-    const hash = bcrypt.hashSync(password, SALT_ROUNDS);
+async function createUser(username, password) {
+    const hash = await bcrypt.hash(password, SALT_ROUNDS);
     const stmt = db.prepare('INSERT INTO users (username, password) VALUES (?, ?)');
     stmt.run(username, hash);
 }
 
-function verifyUser(username, password) {
+async function verifyUser(username, password) {
     const stmt = db.prepare('SELECT password FROM users WHERE username = ?');
     const row = stmt.get(username);
     if (!row) return false;
-    return bcrypt.compareSync(password, row.password);
+    return bcrypt.compare(password, row.password);
 }
 
 function userExists(username) {

@@ -121,7 +121,7 @@ export function setupRoomUI() {
         createBtn.disabled = true;
         createBtn.textContent = 'Creating...';
         try {
-            const res = await fetch('/api/rooms', { method: 'POST' });
+            const res = await fetch('/api/rooms', { method: 'POST', headers: { 'X-Requested-With': 'FreeRTC' } });
             const { roomId } = await res.json();
             window.location.href = `/room/${roomId}`;
         } catch (err) {

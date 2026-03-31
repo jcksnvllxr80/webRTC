@@ -5,12 +5,23 @@ const https = require('https');
 const path = require('path');
 const crypto = require('crypto');
 const session = require('express-session');
+const rateLimit = require('express-rate-limit');
+const SqliteStore = require('better-sqlite3-session-store')(session);
+const Database = require('better-sqlite3');
 const db = require('./db');
 
 const ROOT_DIR = path.resolve(__dirname, '../..');
 const CERTS_DIR = path.join(ROOT_DIR, 'certs');
 const CONFIG_PATH = path.join(ROOT_DIR, 'config', 'server.json');
+const DATA_DIR = path.join(ROOT_DIR, 'data');
 const PUBLIC_DIR = path.join(ROOT_DIR, 'src', 'web', 'public');
+
+fs.mkdirSync(DATA_DIR, { recursive: true });
+const sessionDb = new Database(path.join(DATA_DIR, 'sessions.db'));
+
+// Read version once; expose only major.minor to avoid fingerprinting
+const _fullVersion = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf8')).version;
+const _appVersion = _fullVersion.split('.').slice(0, 2).join('.');
 
 const options = {
     key: fs.readFileSync(path.join(CERTS_DIR, 'private.key')),
@@ -23,15 +34,31 @@ const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
 // Merge secrets.json if present (gitignored — put real API keys there)
 const SECRETS_PATH = path.join(ROOT_DIR, 'config', 'secrets.json');
 if (fs.existsSync(SECRETS_PATH)) Object.assign(config, JSON.parse(fs.readFileSync(SECRETS_PATH, 'utf8')));
+
+// Generate a persistent session secret if one doesn't exist
+if (!config.sessionSecret) {
+    config.sessionSecret = crypto.randomBytes(64).toString('hex');
+    const secretsData = fs.existsSync(SECRETS_PATH)
+        ? JSON.parse(fs.readFileSync(SECRETS_PATH, 'utf8'))
+        : {};
+    secretsData.sessionSecret = config.sessionSecret;
+    fs.mkdirSync(path.dirname(SECRETS_PATH), { recursive: true });
+    fs.writeFileSync(SECRETS_PATH, JSON.stringify(secretsData, null, 4));
+    console.log('Generated new session secret and saved to config/secrets.json');
+}
+
 const argPort = process.argv.find(a => a.startsWith('--port='))?.split('=')[1];
 const PORT = argPort || process.env.PORT || config.port || 3000;
-// Create the session middleware
+// Create the session middleware with persistent SQLite store
 const sessionMiddleware = session({
-    secret: 'your-secret-key',
+    store: new SqliteStore({ client: sessionDb, expired: { clear: true, intervalMs: 900000 } }),
+    secret: config.sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false,
+        secure: true,
+        httpOnly: true,
+        sameSite: 'strict',
         maxAge: 24 * 60 * 60 * 1000
     }
 });
@@ -39,6 +66,58 @@ const sessionMiddleware = session({
 // Use session middleware
 app.use(sessionMiddleware);
 app.use(express.json());
+
+// Security headers
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader('Content-Security-Policy',
+        "default-src 'self'; " +
+        "script-src 'self'; " +
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+        "font-src 'self' https://fonts.gstatic.com; " +
+        "img-src 'self' data: https: blob:; " +
+        "media-src 'self' blob:; " +
+        "connect-src 'self' wss: ws: https://cdn.jsdelivr.net; " +
+        "frame-src https://www.youtube-nocookie.com https://player.vimeo.com;"
+    );
+    next();
+});
+
+// CSRF protection: require X-Requested-With header on state-changing requests.
+// Browsers will not send custom headers cross-origin without a CORS preflight,
+// which the server does not allow, so cross-origin forms cannot forge requests.
+app.use((req, res, next) => {
+    if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
+        return next();
+    }
+    if (req.headers['x-requested-with'] === 'FreeRTC') {
+        return next();
+    }
+    res.status(403).json({ error: 'Missing CSRF header' });
+});
+
+// Rate limiters
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 15,
+    message: { error: 'Too many attempts, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use('/login', authLimiter);
+app.use('/register', authLimiter);
+
+const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    message: { error: 'Too many requests' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use('/api/', apiLimiter);
 
 const publicPaths = new Set([
     '/login.html',
@@ -68,7 +147,7 @@ app.get('/login.html', (req, res) => {
 
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    if (username && password && db.verifyUser(username, password)) {
+    if (username && password && await db.verifyUser(username, password)) {
         req.session.authenticated = true;
         req.session.username = username;
         res.sendStatus(200);
@@ -89,14 +168,20 @@ app.post('/register', async (req, res) => {
     if (!username || !password) {
         return res.status(400).json({ error: 'Username and password required' });
     }
-    if (username.length < 3 || password.length < 6) {
-        return res.status(400).json({ error: 'Username must be 3+ chars, password 6+ chars' });
+    if (username.length < 3 || username.length > 32) {
+        return res.status(400).json({ error: 'Username must be 3–32 characters' });
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+        return res.status(400).json({ error: 'Username may only contain letters, numbers, hyphens, and underscores' });
+    }
+    if (password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
     if (db.userExists(username)) {
-        return res.status(409).json({ error: 'Username already taken' });
+        return res.status(409).json({ error: 'Username not available' });
     }
     try {
-        db.createUser(username, password);
+        await db.createUser(username, password);
         req.session.authenticated = true;
         req.session.username = username;
         res.sendStatus(201);
@@ -164,8 +249,8 @@ app.get('/api/me', (req, res) => {
 });
 
 app.get('/api/version', (req, res) => {
-    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf8'));
-    res.json({ version: pkg.version });
+    // Read version once at startup instead of on every request; only expose major.minor
+    res.json({ version: _appVersion });
 });
 
 app.get('/api/rtc-config', (req, res) => {
@@ -219,7 +304,7 @@ app.get('/api/gifs/search', requireAuth, async (req, res) => {
 
 // Rooms API
 app.post('/api/rooms', (req, res) => {
-    const roomId = crypto.randomBytes(4).toString('hex');
+    const roomId = crypto.randomBytes(16).toString('hex');
     res.json({ roomId });
 });
 
@@ -259,6 +344,17 @@ app.get('/api/online', (req, res) => {
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
     const username = socket.request.session?.username;
+
+    // Per-socket message rate limiter (token bucket: 30 messages per 10 seconds)
+    const msgBucket = { tokens: 30, last: Date.now() };
+    function rateLimitMsg() {
+        const now = Date.now();
+        msgBucket.tokens = Math.min(30, msgBucket.tokens + (now - msgBucket.last) / 1000 * 3);
+        msgBucket.last = now;
+        if (msgBucket.tokens < 1) return false;
+        msgBucket.tokens--;
+        return true;
+    }
 
     // Track online status
     if (username) {
@@ -307,19 +403,24 @@ io.on('connection', (socket) => {
         io.in(roomId).emit('participant-updated', socket.id, participant);
     });
 
+    // Helper: only relay if the socket is actually in the room it claims
+    function inRoom(roomId) {
+        return roomId && socket.data.roomId === roomId;
+    }
+
     // Voice channel signaling
-    socket.on('voice-offer',  (offer, roomId)     => socket.to(roomId).emit('voice-offer',  offer));
-    socket.on('voice-answer', (answer, roomId)    => socket.to(roomId).emit('voice-answer', answer));
-    socket.on('voice-ice',    (candidate, roomId) => socket.to(roomId).emit('voice-ice',    candidate));
+    socket.on('voice-offer',  (offer, roomId)     => { if (inRoom(roomId)) socket.to(roomId).emit('voice-offer',  offer); });
+    socket.on('voice-answer', (answer, roomId)    => { if (inRoom(roomId)) socket.to(roomId).emit('voice-answer', answer); });
+    socket.on('voice-ice',    (candidate, roomId) => { if (inRoom(roomId)) socket.to(roomId).emit('voice-ice',    candidate); });
 
     // Video channel signaling
-    socket.on('video-offer',  (offer, roomId)     => socket.to(roomId).emit('video-offer',  offer));
-    socket.on('video-answer', (answer, roomId)    => socket.to(roomId).emit('video-answer', answer));
-    socket.on('video-ice',    (candidate, roomId) => socket.to(roomId).emit('video-ice',    candidate));
+    socket.on('video-offer',  (offer, roomId)     => { if (inRoom(roomId)) socket.to(roomId).emit('video-offer',  offer); });
+    socket.on('video-answer', (answer, roomId)    => { if (inRoom(roomId)) socket.to(roomId).emit('video-answer', answer); });
+    socket.on('video-ice',    (candidate, roomId) => { if (inRoom(roomId)) socket.to(roomId).emit('video-ice',    candidate); });
 
     // Stream teardown notifications
-    socket.on('user-stopped-voice', (roomId) => socket.to(roomId).emit('user-stopped-voice'));
-    socket.on('user-stopped-video', (roomId) => socket.to(roomId).emit('user-stopped-video'));
+    socket.on('user-stopped-voice', (roomId) => { if (inRoom(roomId)) socket.to(roomId).emit('user-stopped-voice'); });
+    socket.on('user-stopped-video', (roomId) => { if (inRoom(roomId)) socket.to(roomId).emit('user-stopped-video'); });
 
     socket.on('send-room-invite', ({ toUsername, roomId }) => {
         const targetSockets = onlineUsers.get(toUsername);
@@ -359,7 +460,7 @@ io.on('connection', (socket) => {
     // handler for chat messages (rich text)
     socket.on('chat-message', (data) => {
         const username = socket.request.session.username;
-        if (!data.roomId) return;
+        if (!inRoom(data.roomId) || !rateLimitMsg()) return;
         const msgId = data.msgId ? String(data.msgId).slice(0, 64) : null;
         if (msgId) {
             if (!messageOwners.has(data.roomId)) messageOwners.set(data.roomId, new Map());
@@ -376,7 +477,7 @@ io.on('connection', (socket) => {
     // handler for file/image transfers (base64, max ~5 MB)
     socket.on('file-message', (data) => {
         const username = socket.request.session.username;
-        if (!data.roomId) return;
+        if (!inRoom(data.roomId) || !rateLimitMsg()) return;
         const dataStr = data.data ? String(data.data) : '';
         if (dataStr.length > 7 * 1024 * 1024) return; // reject oversized payloads
         const msgId = data.msgId ? String(data.msgId).slice(0, 64) : null;
@@ -398,7 +499,7 @@ io.on('connection', (socket) => {
     socket.on('edit-message', (data) => {
         const username = socket.request.session.username;
         const { roomId, msgId } = data;
-        if (!roomId || !msgId) return;
+        if (!inRoom(roomId) || !msgId) return;
         const safeId = String(msgId).slice(0, 64);
         if (messageOwners.get(roomId)?.get(safeId) !== username) return;
         const text = String(data.text || '').slice(0, 4096);
@@ -407,8 +508,9 @@ io.on('connection', (socket) => {
         const rawImages = Array.isArray(data.images) ? data.images : [];
         for (const src of rawImages.slice(0, 10)) {
             const s = String(src);
-            if (s.startsWith('data:image/') || s.startsWith('https://')) {
-                html += `<img src="${s.replace(/"/g, '&quot;')}" style="max-width:100%">`;
+            // Only allow raster data:image/ URIs (not SVG) and HTTPS URLs
+            if (/^data:image\/(?:png|jpeg|gif|webp);/.test(s) || s.startsWith('https://')) {
+                html += `<img src="${s.replace(/[&"<>]/g, c => ({'&':'&amp;','"':'&quot;','<':'&lt;','>':'&gt;'}[c]))}" style="max-width:100%">`;
             }
         }
         io.in(roomId).emit('message-edited', { msgId: safeId, text, html });
@@ -418,7 +520,7 @@ io.on('connection', (socket) => {
     socket.on('delete-message', (data) => {
         const username = socket.request.session.username;
         const { roomId, msgId } = data;
-        if (!roomId || !msgId) return;
+        if (!inRoom(roomId) || !msgId) return;
         const safeId = String(msgId).slice(0, 64);
         if (messageOwners.get(roomId)?.get(safeId) !== username) return;
         messageOwners.get(roomId).delete(safeId);
@@ -430,7 +532,7 @@ io.on('connection', (socket) => {
     socket.on('react-message', (data) => {
         const username = socket.request.session.username;
         const { roomId, msgId, emoji } = data;
-        if (!roomId || !msgId || !emoji) return;
+        if (!inRoom(roomId) || !msgId || !emoji) return;
         const safeId    = String(msgId).slice(0, 64);
         const safeEmoji = String(emoji).slice(0, 8);
 
@@ -453,7 +555,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('user-stopped-stream', (roomId, userId) => {
-        socket.to(roomId).emit('user-stopped-stream', userId);
+        if (inRoom(roomId)) socket.to(roomId).emit('user-stopped-stream', userId);
     });
 });
 

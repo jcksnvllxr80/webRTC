@@ -20,7 +20,8 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'FreeRTC'
             },
             body: JSON.stringify(formData)
         });
