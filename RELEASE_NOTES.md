@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.18.2 — 2026-03-30
+
+### Fix: camera/mic in packaged macOS app
+
+- **macOS entitlements** — Added `build/entitlements.mac.plist` with camera, microphone, and audio-output entitlements so the packaged `.app` can access media devices.
+- **Info.plist usage descriptions** — Added `NSCameraUsageDescription`, `NSMicrophoneUsageDescription`, and `NSScreenCaptureUsageDescription` via `extendInfo` so macOS shows proper permission prompts.
+- **`systemPreferences.askForMediaAccess`** — Triggers the OS-level camera/mic permission dialog on first launch of the packaged app.
+
+---
+
 ## v0.18.1 — 2026-03-30
 
 ### Electron upgrade for macOS Tahoe

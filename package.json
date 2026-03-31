@@ -1,6 +1,6 @@
 {
   "name": "freertc",
-  "version": "0.18.1",
+  "version": "0.18.2",
   "description": "FreeRTC — self-hosted peer-to-peer video, audio, and chat\n",
   "main": "src/desktop/main.js",
   "scripts": {
@@ -41,7 +41,14 @@
     ],
     "mac": {
       "category": "public.app-category.video",
-      "icon": "src/web/public/icon.icns"
+      "icon": "src/web/public/icon.icns",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSCameraUsageDescription": "FreeRTC needs camera access for video calls.",
+        "NSMicrophoneUsageDescription": "FreeRTC needs microphone access for audio calls.",
+        "NSScreenCaptureUsageDescription": "FreeRTC needs screen capture access for screen sharing."
+      }
     },
     "win": {
       "target": "nsis",

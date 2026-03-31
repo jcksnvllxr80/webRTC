@@ -1,4 +1,4 @@
-const { app, BrowserWindow, clipboard, desktopCapturer, ipcMain, Menu, nativeImage, session, shell } = require('electron');
+const { app, BrowserWindow, clipboard, desktopCapturer, ipcMain, Menu, nativeImage, session, shell, systemPreferences } = require('electron');
 app.name = 'FreeRTC';
 const path = require('path');
 const fs = require('fs');
@@ -489,6 +489,16 @@ function configureDesktopPermissions() {
         logger.debug(`Permission request: ${permission} → ${allowed}`);
         callback(allowed);
     });
+
+    // macOS: prompt for camera/mic access so the packaged app gets system-level permission
+    if (process.platform === 'darwin' && systemPreferences.askForMediaAccess) {
+        systemPreferences.askForMediaAccess('camera').then(granted => {
+            logger.info(`macOS camera permission: ${granted ? 'granted' : 'denied'}`);
+        });
+        systemPreferences.askForMediaAccess('microphone').then(granted => {
+            logger.info(`macOS microphone permission: ${granted ? 'granted' : 'denied'}`);
+        });
+    }
 }
 
 function attemptConnect(url) {
