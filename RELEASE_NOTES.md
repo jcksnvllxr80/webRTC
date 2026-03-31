@@ -1,5 +1,13 @@
 # Release Notes
 
+## v1.0.2 — 2026-03-31
+
+### Bug fix
+
+- **First-in-room audio now heard on join** — When Person A enabled audio before anyone else joined, their `voicePC` was left in `have-local-offer` state. On Person B's arrival an implicit SDP rollback re-fired `onnegotiationneeded`, producing a double-offer that broke the handshake. The fix closes and recreates the peer connection on `user-connected`, then re-adds local tracks so `onnegotiationneeded` fires exactly once from a clean `stable` state. The same correction is applied to the video peer connection.
+
+---
+
 ## v1.0.1 — 2026-03-30
 
 ### UX polish & bug fixes

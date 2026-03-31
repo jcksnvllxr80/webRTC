@@ -237,8 +237,38 @@ export function setupSignalingListeners() {
         console.log('User connected:', userId, username);
         setConnectionStatus(null);
         const { audio, video, screen } = state.media;
-        if (audio) createVoiceOffer();
-        if (video || screen) createVideoOffer();
+
+        // Close and recreate any existing peer connections so we start from a
+        // clean "stable" state.  If we leave a stale voicePC/videoPC in
+        // "have-local-offer" (from an earlier offer sent to an empty room),
+        // an implicit rollback on the next setLocalDescription() re-fires
+        // onnegotiationneeded, producing a double-offer that breaks the
+        // SDP exchange and leaves the first participant unheard.
+        if (audio) {
+            closeVoiceConnection();
+            ensureVoiceConnection();
+            if (state.processedAudioStream) {
+                state.processedAudioStream.getTracks().forEach(track => {
+                    state.voicePC.addTrack(track, state.processedAudioStream);
+                });
+            }
+            // onnegotiationneeded will fire from addTrack and send the offer
+        }
+
+        if (video || screen) {
+            const localStream = state.localStream;
+            closeVideoConnection();
+            ensureVideoConnection();
+            if (localStream) {
+                const videoTrack = localStream.getVideoTracks()[0];
+                if (videoTrack) addVideoTrack(videoTrack, localStream);
+                if (state.isSharingSystemAudio) {
+                    const audioTrack = localStream.getAudioTracks()[0];
+                    if (audioTrack) state.screenAudioSender = addTrackGetSender(audioTrack, localStream);
+                }
+            }
+            // onnegotiationneeded will fire from addTrack and send the offer
+        }
     });
 
     // Voice signaling

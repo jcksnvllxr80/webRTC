@@ -121,6 +121,7 @@ export async function initAudio() {
     state.audioStream = rawStream;
     ensureVoiceConnection();
     const processedStream = setupAudioPipeline(state.audioStream);
+    state.processedAudioStream = processedStream;
     processedStream.getTracks().forEach(track => {
         state.voicePC.addTrack(track, processedStream);
     });
@@ -135,6 +136,7 @@ export function leaveAudio() {
         state.audioStream.getTracks().forEach(track => track.stop());
         state.audioStream = null;
     }
+    state.processedAudioStream = null;
     teardownAudioPipeline();
     closeVoiceConnection();
 
