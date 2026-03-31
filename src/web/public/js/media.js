@@ -1,7 +1,7 @@
 import { state, socket } from './state.js';
 import { ensureVoiceConnection, closeVoiceConnection, ensureVideoConnection, closeVideoConnection, addVideoTrack, addTrackGetSender, removeVideoTracks, removeScreenAudioTrack } from './webrtc.js';
 import { updateControlsForMediaState } from './room.js';
-import { setRemoteAudioSystemMuted } from './remote-audio.js';
+
 
 function formatMediaError(prefix, error) {
     const name = error?.name || 'Error';
@@ -147,7 +147,6 @@ export function leaveAudio() {
 export async function initCamera() {
     try {
         state.isSharingSystemAudio = false;
-        setRemoteAudioSystemMuted(false);
 
         if (state.localStream) {
             state.localStream.getTracks().forEach(t => t.stop());
@@ -184,7 +183,6 @@ export async function initCamera() {
 export async function shareScreen() {
     try {
         state.isSharingSystemAudio = false;
-        setRemoteAudioSystemMuted(false);
 
         if (state.localStream) {
             state.localStream.getTracks().forEach(t => t.stop());
@@ -247,7 +245,6 @@ export async function shareScreen() {
         if (screenAudioTrack) {
             state.screenAudioSender = addTrackGetSender(screenAudioTrack, state.localStream);
             state.isSharingSystemAudio = true;
-            setRemoteAudioSystemMuted(true);
         }
 
         state.media.screen = true;
@@ -268,7 +265,6 @@ export function stopVideo() {
 
     closeVideoConnection();
     state.isSharingSystemAudio = false;
-    setRemoteAudioSystemMuted(false);
 
     state.media.video = false;
     state.media.screen = false;

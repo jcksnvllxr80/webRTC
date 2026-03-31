@@ -468,7 +468,8 @@ body{
 }
 
 #room-link{
-    width: 260px;
+    flex: 1;
+    min-width: 0;
     padding: var(--sp-xs) var(--sp-sm);
     border: 1px solid var(--c-border);
     border-radius: var(--r-sm);
@@ -494,6 +495,12 @@ body{
 #copy-room-link:hover, #leave-room-btn:hover{
     background: var(--c-border);
     color: var(--c-text);
+}
+
+#leave-room-btn:hover{
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
 }
 
 /* ── Participant list ── */
@@ -2379,7 +2386,7 @@ button:disabled{
     }
 
     #room-link{
-        width: 100%;
+        flex: 1 1 100%;
         order: 10;
     }
 
