@@ -14,6 +14,7 @@ export const state = {
     media: { audio: false, video: false, screen: false },
     participants: new Map(),  // socketId -> { username, media }
     audioStream: null,        // raw mic stream
+    processedAudioStream: null, // Web Audio pipeline output stream (what the peer actually receives)
     screenAudioSender: null,  // RTCRtpSender for screen-share audio track (if any)
     isSharingSystemAudio: false,
     audioSettings: loadAudioSettings()
