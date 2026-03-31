@@ -248,6 +248,27 @@ app.get('/api/me', (req, res) => {
     res.json({ username: req.session.username });
 });
 
+app.post('/api/change-password', requireAuth, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current and new password are required' });
+    }
+    if (newPassword.length < 8) {
+        return res.status(400).json({ error: 'New password must be at least 8 characters' });
+    }
+    const username = req.session.username;
+    if (!await db.verifyUser(username, currentPassword)) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+    try {
+        await db.updatePassword(username, newPassword);
+        res.sendStatus(200);
+    } catch (err) {
+        console.error('Change password error:', err);
+        res.sendStatus(500);
+    }
+});
+
 app.get('/api/version', (req, res) => {
     // Read version once at startup instead of on every request; only expose major.minor
     res.json({ version: _appVersion });

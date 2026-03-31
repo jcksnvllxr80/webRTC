@@ -16,11 +16,102 @@ export function setupUIListeners() {
         })
         .catch(() => {});
 
+    // User menu toggle
+    const userMenuBtn = document.getElementById('user-menu-btn');
+    const userMenu    = document.getElementById('user-menu');
+    userMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = !userMenu.hidden;
+        userMenu.hidden = open;
+        userMenuBtn.setAttribute('aria-expanded', String(!open));
+    });
+    document.addEventListener('click', () => {
+        if (!userMenu.hidden) {
+            userMenu.hidden = true;
+            userMenuBtn.setAttribute('aria-expanded', 'false');
+        }
+    });
+
     // Logout
     document.getElementById('logout-btn').addEventListener('click', () => {
         fetch('/logout', { method: 'POST', headers: { 'X-Requested-With': 'FreeRTC' } })
             .then(() => window.location.href = '/login.html')
             .catch(err => console.error('Logout error:', err));
+    });
+
+    // Change Password modal
+    const cpModal   = document.getElementById('change-password-modal');
+    const cpForm    = document.getElementById('change-password-form');
+    const cpMessage = document.getElementById('cp-message');
+
+    function openChangePasswordModal() {
+        cpForm.reset();
+        cpMessage.hidden = true;
+        cpMessage.className = 'cp-message';
+        document.getElementById('cp-submit').disabled = false;
+        cpModal.style.display = '';
+        userMenu.hidden = true;
+        userMenuBtn.setAttribute('aria-expanded', 'false');
+        setTimeout(() => document.getElementById('cp-current').focus(), 50);
+    }
+
+    function closeChangePasswordModal() {
+        cpModal.style.display = 'none';
+    }
+
+    document.getElementById('change-password-btn').addEventListener('click', openChangePasswordModal);
+    document.getElementById('change-password-close').addEventListener('click', closeChangePasswordModal);
+    document.getElementById('cp-cancel').addEventListener('click', closeChangePasswordModal);
+    cpModal.addEventListener('click', (e) => { if (e.target === cpModal) closeChangePasswordModal(); });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && cpModal.style.display !== 'none') closeChangePasswordModal();
+    });
+
+    cpForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const current = document.getElementById('cp-current').value;
+        const newPw   = document.getElementById('cp-new').value;
+        const confirm = document.getElementById('cp-confirm').value;
+
+        cpMessage.hidden = true;
+        cpMessage.className = 'cp-message';
+
+        if (newPw !== confirm) {
+            cpMessage.textContent = 'New passwords do not match.';
+            cpMessage.className = 'cp-message cp-error';
+            cpMessage.hidden = false;
+            return;
+        }
+
+        const submitBtn = document.getElementById('cp-submit');
+        submitBtn.disabled = true;
+
+        try {
+            const res = await fetch('/api/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'FreeRTC' },
+                body: JSON.stringify({ currentPassword: current, newPassword: newPw })
+            });
+
+            if (res.ok) {
+                cpMessage.textContent = 'Password changed successfully.';
+                cpMessage.className = 'cp-message cp-success';
+                cpMessage.hidden = false;
+                cpForm.reset();
+                setTimeout(closeChangePasswordModal, 1500);
+            } else {
+                const data = await res.json().catch(() => ({}));
+                cpMessage.textContent = data.error || 'Failed to change password.';
+                cpMessage.className = 'cp-message cp-error';
+                cpMessage.hidden = false;
+                submitBtn.disabled = false;
+            }
+        } catch (err) {
+            cpMessage.textContent = 'Network error. Please try again.';
+            cpMessage.className = 'cp-message cp-error';
+            cpMessage.hidden = false;
+            submitBtn.disabled = false;
+        }
     });
 
     if (!isInRoom()) return;
