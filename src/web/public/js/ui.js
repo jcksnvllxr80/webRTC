@@ -19,7 +19,7 @@ export function setupUIListeners() {
 
     // Logout
     document.getElementById('logout-btn').addEventListener('click', () => {
-        fetch('/logout', { method: 'POST' })
+        fetch('/logout', { method: 'POST', headers: { 'X-Requested-With': 'FreeRTC' } })
             .then(() => window.location.href = '/login.html')
             .catch(err => console.error('Logout error:', err));
     });

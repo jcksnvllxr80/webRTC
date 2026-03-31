@@ -92,7 +92,7 @@ export async function addFriendForParticipant(username, btn) {
     try {
         const res = await fetch('/api/friends', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'FreeRTC' },
             body: JSON.stringify({ friendUsername: username })
         });
         if (res.ok) {
@@ -205,7 +205,7 @@ async function loadFriendsList() {
                 removeBtn.addEventListener('click', async () => {
                     removeBtn.disabled = true;
                     removeBtn.textContent = 'Removing...';
-                    await fetch(`/api/friends/${encodeURIComponent(f.friend_username)}`, { method: 'DELETE' });
+                    await fetch(`/api/friends/${encodeURIComponent(f.friend_username)}`, { method: 'DELETE', headers: { 'X-Requested-With': 'FreeRTC' } });
                     loadFriendsList();
                 });
                 btnGroup.appendChild(removeBtn);
@@ -277,19 +277,34 @@ function showInviteToast(invite) {
     if (!container) return;
     const toast = document.createElement('div');
     toast.className = 'invite-toast';
-    toast.innerHTML = `
-        <span><strong>${invite.fromUsername}</strong> invited you to a room</span>
-        <div class="invite-toast-actions">
-            <button class="invite-toast-accept">Join</button>
-            <button class="invite-toast-dismiss">Dismiss</button>
-        </div>
-    `;
-    toast.querySelector('.invite-toast-accept').addEventListener('click', () => {
+
+    const msgSpan = document.createElement('span');
+    const strong = document.createElement('strong');
+    strong.textContent = invite.fromUsername;
+    msgSpan.appendChild(strong);
+    msgSpan.appendChild(document.createTextNode(' invited you to a room'));
+
+    const actions = document.createElement('div');
+    actions.className = 'invite-toast-actions';
+
+    const acceptBtn = document.createElement('button');
+    acceptBtn.className = 'invite-toast-accept';
+    acceptBtn.textContent = 'Join';
+    acceptBtn.addEventListener('click', () => {
         window.location.href = invite.roomLink;
     });
-    toast.querySelector('.invite-toast-dismiss').addEventListener('click', () => {
+
+    const dismissBtn = document.createElement('button');
+    dismissBtn.className = 'invite-toast-dismiss';
+    dismissBtn.textContent = 'Dismiss';
+    dismissBtn.addEventListener('click', () => {
         toast.remove();
     });
+
+    actions.appendChild(acceptBtn);
+    actions.appendChild(dismissBtn);
+    toast.appendChild(msgSpan);
+    toast.appendChild(actions);
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 12000);
 }

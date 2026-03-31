@@ -5467,7 +5467,8 @@ var ReplaceStep = class _ReplaceStep extends Step {
     return new _ReplaceStep(this.from, this.from + this.slice.size, doc3.slice(this.from, this.to));
   }
   map(mapping) {
-    let from2 = mapping.mapResult(this.from, 1), to = mapping.mapResult(this.to, -1);
+    let to = mapping.mapResult(this.to, -1);
+    let from2 = this.from == this.to && _ReplaceStep.MAP_BIAS < 0 ? to : mapping.mapResult(this.from, 1);
     if (from2.deletedAcross && to.deletedAcross)
       return null;
     return new _ReplaceStep(from2.pos, Math.max(from2.pos, to.pos), this.slice, this.structure);
@@ -5502,6 +5503,7 @@ var ReplaceStep = class _ReplaceStep extends Step {
     return new _ReplaceStep(json2.from, json2.to, Slice.fromJSON(schema, json2.slice), !!json2.structure);
   }
 };
+ReplaceStep.MAP_BIAS = 1;
 Step.jsonID("replace", ReplaceStep);
 var ReplaceAroundStep = class _ReplaceAroundStep extends Step {
   /**
@@ -6331,6 +6333,23 @@ function replaceRangeWith(tr2, from2, to, node) {
 }
 function deleteRange(tr2, from2, to) {
   let $from = tr2.doc.resolve(from2), $to = tr2.doc.resolve(to);
+  if ($from.parent.isTextblock && $to.parent.isTextblock && $from.start() != $to.start() && $from.parentOffset == 0 && $to.parentOffset == 0) {
+    let shared = $from.sharedDepth(to), isolated = false;
+    for (let d = $from.depth; d > shared; d--)
+      if ($from.node(d).type.spec.isolating)
+        isolated = true;
+    for (let d = $to.depth; d > shared; d--)
+      if ($to.node(d).type.spec.isolating)
+        isolated = true;
+    if (!isolated) {
+      for (let d = $from.depth; d > 0 && from2 == $from.start(d); d--)
+        from2 = $from.before(d);
+      for (let d = $to.depth; d > 0 && to == $to.start(d); d--)
+        to = $to.before(d);
+      $from = tr2.doc.resolve(from2);
+      $to = tr2.doc.resolve(to);
+    }
+  }
   let covered = coveredDepths($from, $to);
   for (let i = 0; i < covered.length; i++) {
     let depth = covered[i], last = i == covered.length - 1;
@@ -34354,11 +34373,19 @@ function createChatEditor({ editableEl, onSubmit }) {
         const res = await fetch(url);
         const data = await res.json();
         if (data.error) {
-          grid.innerHTML = `<span class="gif-status gif-error">${data.error}</span>`;
+          grid.innerHTML = "";
+          const errEl = document.createElement("span");
+          errEl.className = "gif-status gif-error";
+          errEl.textContent = data.error;
+          grid.appendChild(errEl);
           return;
         }
         if (!data.length) {
-          grid.innerHTML = '<span class="gif-status">No results</span>';
+          grid.innerHTML = "";
+          const emptyEl = document.createElement("span");
+          emptyEl.className = "gif-status";
+          emptyEl.textContent = "No results";
+          grid.appendChild(emptyEl);
           return;
         }
         grid.innerHTML = "";
