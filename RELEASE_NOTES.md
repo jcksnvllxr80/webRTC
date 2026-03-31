@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.18.1 — 2026-03-30
+
+### Electron upgrade for macOS Tahoe
+
+- **Electron 35 → 41** — Fixes severe GPU performance bug on macOS Tahoe (26) that caused system-wide lag with Electron apps. See [electron/electron#48311](https://github.com/electron/electron/issues/48311).
+- **Selective certificate handling restored** — The `certificate-error` event handler (finding #15) now works correctly on Electron 41, replacing the blanket `ignore-certificate-errors` switch.
+
+---
+
 ## v0.18.0 — 2026-03-30
 
 ### Security Hardening
@@ -27,13 +36,13 @@ Full-codebase security audit: 22 findings identified, 19 resolved. All critical 
 - Rate limiting on auth (15 req/15min), API (60 req/min), and per-socket chat (token bucket)
 - Async bcrypt — no longer blocks event loop
 - Session store switched to SQLite (`data/sessions.db`)
-- Username enumeration eliminated, SVG data URIs blocked in edit handler
-- Electron: selective self-signed cert handling replaces blanket cert bypass
+- Username enumeration mitigated, SVG data URIs blocked in edit handler
+- Electron: selective `certificate-error` handler replaces blanket `ignore-certificate-errors` (requires Electron 41 upgrade)
 - Version endpoint exposes only major.minor
 - GIF panel error rendering uses textContent
 
 **Dependencies added:** `express-rate-limit`, `better-sqlite3-session-store`
-**Dependencies upgraded:** `bcrypt` 5.1.1 → 6.0.0
+**Dependencies upgraded:** `bcrypt` 5.1.1 → 6.0.0, `electron` 35.2.1 → 41.1.0 (fixes macOS Tahoe GPU performance bug)
 
 See `SECURITY_AUDIT.md` for the full report.
 

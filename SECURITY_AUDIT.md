@@ -95,7 +95,7 @@
 - [x] **15. Electron Disables All Certificate Validation**
   `src/desktop/main.js:467` — `ignore-certificate-errors` disables all TLS validation.
   **Fix:** Pin the self-signed cert or validate fingerprint instead.
-  **Resolved:** Replaced global `ignore-certificate-errors` with `certificate-error` event handler that only accepts `ERR_CERT_AUTHORITY_INVALID` (self-signed). Other cert errors are rejected.
+  **Resolved:** Replaced blanket `ignore-certificate-errors` with `certificate-error` event handler that only accepts `ERR_CERT_AUTHORITY_INVALID` (self-signed). Other cert errors are rejected. Electron upgraded from 35 to 41 (35 had platform issues on macOS Tahoe).
 
 - [x] **16. No `SameSite` Cookie Attribute**
   Session cookie doesn't set SameSite. Browser defaults vary.
@@ -146,7 +146,7 @@
 | LOW      | 5     | 4        | 1 (infra) |
 | INFO     | 3     | 1        | 2 (accepted risk / future work) |
 
-**Total findings: 22 | Resolved: 19 | Remaining: 3 (no code fix possible — infra or accepted risk)**
+**Total findings: 22 | Resolved: 19 | Remaining: 3 (infra or accepted risk)**
 
 ---
 
@@ -165,7 +165,7 @@
 | Async bcrypt (`hash`/`compare` instead of `hashSync`/`compareSync`) | `src/server/db.js` |
 | Longer room IDs (128-bit / 32 hex chars, up from 32-bit / 8 hex chars) | `src/server/index.js` |
 | Persistent session store (better-sqlite3-session-store → `data/sessions.db`) | `src/server/index.js` |
-| Electron cert handling (selective `certificate-error` handler, not blanket `ignore-certificate-errors`) | `src/desktop/main.js` |
+| Electron cert handling (selective `certificate-error` handler replaces blanket `ignore-certificate-errors`) | `src/desktop/main.js` |
 | Version endpoint limited to major.minor only | `src/server/index.js` |
 | GIF error innerHTML replaced with `createElement` + `textContent` | `src/web/editor-src/index.js`, rebuilt bundle |
 | Password minimum raised to 8 characters | `src/server/index.js`, `src/web/public/register.html` |

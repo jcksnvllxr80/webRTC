@@ -1,6 +1,6 @@
 {
   "name": "freertc",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "description": "FreeRTC — self-hosted peer-to-peer video, audio, and chat\n",
   "main": "src/desktop/main.js",
   "scripts": {
@@ -53,7 +53,7 @@
     }
   },
   "devDependencies": {
-    "electron": "^35.2.1",
+    "electron": "^41.1.0",
     "electron-builder": "^26.0.12",
     "esbuild": "^0.27.4"
   }
