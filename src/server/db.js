@@ -72,4 +72,10 @@ function isFriend(username, friendUsername) {
     return !!stmt.get(username, friendUsername);
 }
 
-module.exports = { createUser, verifyUser, userExists, addFriend, removeFriend, getFriends, isFriend };
+async function updatePassword(username, newPassword) {
+    const hash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    const stmt = db.prepare('UPDATE users SET password = ? WHERE username = ?');
+    stmt.run(hash, username);
+}
+
+module.exports = { createUser, verifyUser, userExists, addFriend, removeFriend, getFriends, isFriend, updatePassword };

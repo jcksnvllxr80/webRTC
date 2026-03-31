@@ -1,5 +1,17 @@
 # Release Notes
 
+## v1.0.4 — 2026-03-31
+
+### Feature
+
+- **Change password** — Users can now change their password from a menu in the header. Click your username to open the dropdown, choose "Change Password", enter the current password, the new password, and confirm it. Validated server-side against bcrypt, with an 8-character minimum.
+
+### Accessibility
+
+- **Screen reader support for change password form** — All three password inputs now carry `aria-describedby="cp-message"`, and the error message container has `role="alert"` and `aria-live="polite"`, so validation errors (e.g. "Passwords do not match") are announced to assistive technologies as they appear.
+
+---
+
 ## v1.0.3 — 2026-03-31
 
 ### Bug fix
