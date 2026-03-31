@@ -1,5 +1,15 @@
 # Release Notes
 
+## v1.0.1 — 2026-03-30
+
+### UX polish & bug fixes
+
+- **Mute button controls video audio only** — The speaker button on the remote video overlay now mutes/unmutes the video element (screen share / camera audio) exclusively. Voice channel audio is always on.
+- **Settings panel clamped to viewport** — Saved panel position is now clamped to window bounds on open, preventing it from rendering off-screen in the Electron app when coordinates were saved from a larger browser window.
+- **Settings panel wider** — Settings panel width increased from 260px to 286px.
+
+---
+
 ## v1.0.0 — 2026-03-30
 
 ### Screen Share Audio & Remote Mute Fixes

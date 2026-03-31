@@ -173,8 +173,14 @@ if (isInRoom()) {
         // Restore last position, or position near the gear button
         const saved = (() => { try { return JSON.parse(localStorage.getItem('settings-panel-pos')); } catch { return null; } })();
         if (saved && typeof saved.x === 'number') {
-            settingsPanel.style.left = saved.x + 'px';
-            settingsPanel.style.top  = saved.y + 'px';
+            // Clamp to viewport so a position from a larger browser session
+            // doesn't leave the panel off-screen in the Electron window.
+            const pw = settingsPanel.offsetWidth  || 260;
+            const ph = settingsPanel.offsetHeight || 300;
+            const x = Math.max(0, Math.min(saved.x, window.innerWidth  - pw));
+            const y = Math.max(0, Math.min(saved.y, window.innerHeight - ph));
+            settingsPanel.style.left = x + 'px';
+            settingsPanel.style.top  = y + 'px';
         } else {
             settingsPanel.style.left = '';
             settingsPanel.style.top  = '';
