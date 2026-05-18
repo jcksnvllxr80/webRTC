@@ -18,6 +18,20 @@ src/
   web/public/       browser app
 ```
 
+## Run Locally
+
+```bash
+npm install
+mkdir certs
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout certs/private.key -out certs/certificate.pem
+npm start
+```
+
+Open `https://localhost:8001` and accept the self-signed cert warning. Visit `/register.html` to create your first account.
+
+The port comes from `config/server.json` (defaults to `8001`); override with `PORT=3000 npm start` or `npm start -- --port=3000`. On first run, the server generates `config/secrets.json` with a session secret. Without a TURN server configured there, calls only work between peers on the same network.
+
 ## Deploying to AWS
 
 Video and audio require a public server and a TURN relay — WebRTC cannot cross most home NAT routers without one. AWS Free Tier covers everything for the first 12 months.
